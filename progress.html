@@ -48,7 +48,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 svg{display:block;width:100%;min-width:560px;height:auto}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
-.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.8rem;border-radius:8px;padding:6px 9px;white-space:nowrap;transform:translate(-50%,-110%)}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.8rem;border-radius:8px;padding:6px 9px;white-space:nowrap;transform:translateY(-110%);max-width:calc(100% - 8px);overflow:hidden;text-overflow:ellipsis}
 .msg{font-size:.88rem;color:var(--muted)}
 .weak{display:flex;flex-wrap:wrap;gap:8px}
 .chip{font-size:.85rem;border-radius:999px;padding:3px 10px;border:1px solid var(--line);background:var(--bg)}
@@ -252,6 +252,12 @@ function render(){
     tr.lastChild.textContent=bl||"—";hs.appendChild(tr)}
 }
 
+// 吹き出しを、見えている範囲の中に収めて置く（端の点では左右に寄せる）
+function placeTip(tip,box,cx,top){
+  tip.hidden=false;tip.style.top=top+"px";tip.style.left="0px";
+  const w=tip.offsetWidth,lo=box.scrollLeft+4,hi=box.scrollLeft+box.clientWidth-w-4;
+  tip.style.left=Math.max(lo,Math.min(hi,cx-w/2))+"px";
+}
 function drawChart(blocks){
   const W=760,H=300,L=40,R=12,T=26,B=40,pw=W-L-R,ph=H-T-B,step=pw/blocks.length,bw=step-6;
   const y=v=>T+ph-(v/100)*ph,svg=$("chart");
@@ -282,7 +288,7 @@ function drawChart(blocks){
     const show=e=>{const b=blocks[+r.dataset.i];const bb=r.getBoundingClientRect(),cb=box.getBoundingClientRect();
       tip.textContent=b.rest?`${b.i*4+1}〜${b.i*4+4}小節　休み`:
         `${b.i*4+1}〜${b.i*4+4}小節　`+(b.second!=null?`${b.second}点（最高 ${b.best}・${b.n}回）`:b.n?`${b.best}点（1回）`:"—");
-      tip.style.left=(bb.left-cb.left+box.scrollLeft+bb.width/2)+"px";tip.style.top=(bb.top-cb.top+40)+"px";tip.hidden=false};
+      placeTip(tip,box,bb.left-cb.left+box.scrollLeft+bb.width/2,bb.top-cb.top+40)};
     r.addEventListener("mouseenter",show);r.addEventListener("click",show);r.addEventListener("mouseleave",()=>tip.hidden=true);
   });
 }
@@ -322,7 +328,7 @@ function drawTrend(blocks){
   svg.innerHTML=h;
   const tip=$("ttip"),box=$("trendbox");
   svg.querySelectorAll(".thit").forEach(c=>{const show=()=>{const o=hits[+c.dataset.i],bb=c.getBoundingClientRect(),cb=box.getBoundingClientRect();
-      tip.textContent=`${o.s.name}　${lab(o.p.d)}　${Math.round(o.p.v)}点`;tip.style.left=(bb.left-cb.left+box.scrollLeft+bb.width/2)+"px";tip.style.top=(bb.top-cb.top+6)+"px";tip.hidden=false};
+      tip.textContent=`${o.s.name}　${lab(o.p.d)}　${Math.round(o.p.v)}点`;placeTip(tip,box,bb.left-cb.left+box.scrollLeft+bb.width/2,bb.top-cb.top+6)};
     c.addEventListener("mouseenter",show);c.addEventListener("click",show);c.addEventListener("mouseleave",()=>tip.hidden=true)});
 }
 function tabs(id,set){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);render()})}
