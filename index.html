@@ -148,6 +148,7 @@ footer a{color:inherit}
     <ul class="msg">
       <li>1音を <code>音名オクターブ:拍数</code> で書きます。例 <code>Db4:1.5</code>（レ♭・付点4分）</li>
       <li>拍数は4分音符=1。8分=0.5、16分=0.25、付点4分=1.5、2分=2</li>
+      <li>タイ（同じ高さの音をつなぐ曲線）は、前の音の後ろに <code>~</code>。例 <code>F4:0.25~ | F4:1</code> は1つの音として伸ばします</li>
       <li>休符は <code>r:0.5</code>。<code>|</code> は小節線の目印で、無視されます</li>
       <li>真ん中のドが <code>C4</code>。♭は <code>b</code>、♯は <code>#</code>（例 <code>Gb4</code>、<code>F#3</code>）</li>
     </ul>
@@ -182,12 +183,12 @@ r:16 |
 Eb4:3 Db4:1 |
 Db4:1 C4:1 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25 |
+Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25~ |
 # 17-20 [B]
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25 Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25 |
-Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25 Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25 |
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25 Db4:0.5 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25 |
-F4:1 Eb4:0.5 Db4:0.25 Db4:0.25 Db4:0.5 r:1.5 |
+Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25~ |
+Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25~ Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25~ |
+Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25~ |
+F4:1 Eb4:0.5 Db4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
 # 21-24
 r:4 |
 r:1 Eb4:1 Db4:1 C4:1 |
@@ -196,15 +197,15 @@ Db4:1.5 Db4:0.25 Db4:0.25 Eb4:2 |
 # 25
 r:2 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
 # 26-28 [C] ここから♭2つの調（レ・ラ・ソは♭なし）
-F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5 |
+F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
 D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
-Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5 |
+Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
 # 29-33（♭2つの調のまま）
 Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5 |
-Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5 |
-G4:1 F4:0.5 Eb4:0.5 Eb4:1 D4:0.5 C4:0.5 |
-C4:0.5 D4:0.5 D4:2 r:1 |
+G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
+G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
+C4:0.5 D4:0.5~ D4:2 r:1 |
 # 34-41 休み（35小節[D]から♭5つの調に戻る）
 r:32 |
 # 42-48 [E]（43-48は1-6小節と同じ）
@@ -217,11 +218,11 @@ Ab4:0.5 Gb4:0.5 F4:0.5 Eb4:0.5 Db4:1 r:0.5 C4:0.25 Db4:0.25 |
 Eb4:1.5 Db4:0.25 C4:0.25 Bb3:1 r:0.5 Bb3:0.25 Db4:0.25 |
 # 49-52（7・16・17・18小節と同じ）
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25 |
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25 Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25 |
-Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25 Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25 |
+Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25~ |
+Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25~ |
+Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25~ Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25~ |
 # 53-56
-Db4:0.5 C4:0.5 Bb3:0.5 C4:0.25 Db4:0.75 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25 |
+Db4:0.5 C4:0.5 Bb3:0.5 C4:0.25 Db4:0.75 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25~ |
 F4:1 Eb4:0.5 Db4:0.25 Db4:0.75 r:1.5 |
 r:4 |
 r:1 Eb4:1 Db4:1 Bb3:1 |
@@ -230,14 +231,14 @@ Db4:3 Db4:1 |
 Db4:1.5 Db4:0.25 Db4:0.25 Eb4:2 |
 r:2 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
 # 60-67 [G]（26-33小節と同じ・♭2つの調）
-F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5 |
+F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
 D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
-Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5 |
+Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
 Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5 |
-Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5 |
-G4:1 F4:0.5 Eb4:0.5 Eb4:1 D4:0.5 C4:0.5 |
-C4:0.5 D4:0.5 D4:2 r:1 |
+G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
+G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
+C4:0.5 D4:0.5~ D4:2 r:1 |
 # 68 休み
 r:4 |
 # 69-72 [H]
@@ -247,13 +248,13 @@ G4:2 r:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
 F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
 # 73-76（77小節から2/4拍子）
 D4:0.5 D4:0.5 D4:0.5 D4:0.25 Eb4:0.75 Eb4:0.5 Eb4:0.5 Eb4:0.5 |
-F4:0.5 F4:0.5 F4:0.5 F#4:1 F#4:0.5 F#4:0.5 G4:0.5 |
+F4:0.5 F4:0.5 F4:0.5 F#4:1 F#4:0.5 F#4:0.5 G4:0.5~ |
 G4:2 r:0.5 G4:0.5 G4:0.5 G4:0.5 |
 Eb4:1 C4:1 D4:1 r:0.5 A4:0.25 G4:0.25 |`
 };
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const texts={},lyrics={};
-for(const p of "A"){texts[p]=store.get("kite-part-v4-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
+for(const p of "A"){texts[p]=store.get("kite-part-v5-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 function parse(text){
@@ -268,7 +269,9 @@ function parse(text){
       const m=/^([A-Ga-g])(b|#)?(-?\d)$/.exec(p);
       if(!m){errs.push(`${li+1}行目「${tok}」の音名`);beat+=dur;continue}
       const midi=12*(+m[3]+1)+PC[m[1].toUpperCase()]+(m[2]==="b"?-1:m[2]==="#"?1:0);
-      notes.push({midi,sp:m[1].toUpperCase()+(m[2]||""),start:beat,dur,lyric:ly.join(":"),frames:0,hit:0});beat+=dur;
+      const prev=notes[notes.length-1];
+      if(prev&&prev.tie&&prev.midi===midi&&Math.abs(prev.start+prev.dur-beat)<1e-6){prev.dur+=dur;prev.tie=tok.endsWith("~");beat+=dur;continue}
+      notes.push({midi,sp:m[1].toUpperCase()+(m[2]||""),start:beat,dur,lyric:ly.join(":"),frames:0,hit:0,tie:tok.endsWith("~")});beat+=dur;
     }
   });
   return {notes,total:beat,errs};
@@ -526,10 +529,10 @@ $("edText").value=texts.A;
 $("btnApply").addEventListener("click",()=>{
   const t=$("edText").value,r=parse(t);
   if(r.errs.length){$("edMsg").textContent="読めない箇所があります："+r.errs.slice(0,4).join("、");return}
-  texts[edPart]=t;store.set("kite-part-v4-"+edPart,t);if(edPart===part)reload();
+  texts[edPart]=t;store.set("kite-part-v5-"+edPart,t);if(edPart===part)reload();
   $("edMsg").textContent=`反映しました（${r.notes.length}音・${(r.total/4).toFixed(1)}小節）。`;
 });
-$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v4-"+edPart);$("edText").value=SAMPLE[edPart];
+$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v5-"+edPart);$("edText").value=SAMPLE[edPart];
   if(edPart===part)reload();$("edMsg").textContent="最初のデータに戻しました。"});
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
