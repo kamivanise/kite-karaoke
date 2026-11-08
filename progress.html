@@ -59,6 +59,14 @@ th{color:var(--muted);font-weight:400;font-size:.78rem}
 .tablewrap{overflow-x:auto}
 .st-exc{color:var(--exc-ink)} .st-good{color:var(--good-ink)} .st-warn{color:var(--warn-ink)} .st-crit{color:var(--crit-ink)}
 details summary{cursor:pointer;font-weight:700}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:700;font-size:.9rem;border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-block}
+.btn.danger{background:var(--crit);border-color:var(--crit);color:#fff}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.warn{color:var(--crit-ink);font-size:.86rem}
+.sub2{font-size:.9rem}
+.cnt{color:var(--muted);font-weight:400;font-size:.85rem}
+
 .top{display:flex;align-items:center;gap:10px}
 .back{text-decoration:none;font-size:1.3rem;line-height:1;padding:4px 6px 4px 0}
 .tabs{display:flex;gap:6px;background:var(--line);border-radius:999px;padding:4px}
@@ -141,6 +149,27 @@ details summary{cursor:pointer;font-weight:700}
   <details class="panel">
     <summary>履歴</summary>
     <div class="tablewrap"><table><thead><tr><th>日時</th><th>小節</th><th>合計</th><th>ブロック</th></tr></thead><tbody id="hist"></tbody></table></div>
+  </details>
+
+  <details class="panel">
+    <summary>記録の保存 <span class="cnt" id="recCount"></span></summary>
+    <h2 class="sub2">この端末の記録<button type="button" class="help" data-help="hData" aria-expanded="false" aria-label="説明を見る">?</button></h2>
+    <div class="helptext" id="hData" hidden><ul>
+      <li>記録はこの端末のブラウザの中だけに保存され、ほかの人やネットには送られない</li>
+      <li>Safariは7日間開かないと保存した記録を消すことがある。ホーム画面に追加して開くか、ときどき書き出しておく</li>
+      <li>読み込むと、今の記録に足される（同じ回は重ならない）</li></ul></div>
+    <div class="btns">
+      <button class="btn" id="btnExport" type="button">JSONで書き出す</button>
+      <label class="btn" for="recFile">JSONを読み込む</label>
+      <input type="file" id="recFile" accept="application/json,.json" hidden>
+      <button class="btn" id="btnClear" type="button">すべて消す</button>
+    </div>
+    <div class="btns" id="clearConfirm" hidden>
+      <span class="warn">この端末の記録をすべて消します。元に戻せません。</span>
+      <button class="btn danger" id="btnClearYes" type="button">消す</button>
+      <button class="btn" id="btnClearNo" type="button">やめる</button>
+    </div>
+    <div class="msg" id="recMsg"></div>
   </details>
 </div>
 
@@ -239,6 +268,29 @@ function drawChart(blocks){
 function tabs(id,set){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);render()})}
 tabs("partTabs",v=>{part=v});tabs("modeTabs",v=>{mode=v});
 window.addEventListener("storage",render);
+function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
+function showCount(){const n=recs().length;$("recCount").textContent=n?`${n}件`:""}
+$("btnExport").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({app:"kite-karaoke",version:1,exportedAt:new Date().toISOString(),records:recs()},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`kite-records-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  $("recMsg").textContent="書き出しました";
+});
+$("recFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());const inc=(Array.isArray(j)?j:j.records||[]).filter(x=>x&&typeof x.score==="number"&&x.at);
+    const cur=recs(),key=x=>x.at+x.part+x.from+x.to+x.mode,seen=new Set(cur.map(key));
+    const add=inc.filter(x=>!seen.has(key(x)));
+    saveRecs(cur.concat(add).sort((p,q)=>p.at<q.at?-1:1));render();showCount();
+    $("recMsg").textContent=`${add.length}件を読み込みました`}
+  catch(err){$("recMsg").textContent="このファイルは読み込めませんでした"}
+  e.target.value="";
+});
+$("btnClear").addEventListener("click",()=>{$("clearConfirm").hidden=false});
+$("btnClearNo").addEventListener("click",()=>{$("clearConfirm").hidden=true});
+$("btnClearYes").addEventListener("click",()=>{saveRecs([]);$("clearConfirm").hidden=true;render();showCount();$("recMsg").textContent="消しました"});
+showCount();
+
 document.addEventListener("click",e=>{const b=e.target.closest(".help");if(!b)return;const t=document.getElementById(b.dataset.help);if(!t)return;t.hidden=!t.hidden;b.setAttribute("aria-expanded",t.hidden?"false":"true")});
 render();
 })();

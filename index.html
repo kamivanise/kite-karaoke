@@ -84,11 +84,6 @@ details summary{cursor:pointer;font-weight:700}
 code{font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:var(--bg);padding:1px 5px;border-radius:4px}
 ul{margin:0;padding-left:1.2em}
 footer{font-size:.8rem;color:var(--muted)}
-.recs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column}
-.recs li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:.88rem}
-.recs .rd{color:var(--muted);font-variant-numeric:tabular-nums}
-.recs .rp{min-width:0}
-.recs .rs{font-variant-numeric:tabular-nums}
 label.btn{display:inline-block}
 .help{flex:none;width:23px;height:23px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .8rem/1 var(--body);cursor:pointer;vertical-align:middle;letter-spacing:0}
 .help[aria-expanded="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
@@ -185,27 +180,6 @@ footer a{color:inherit}
     <strong>習熟度マップ →</strong>
     <span class="msg" id="progSummary"></span>
   </a>
-
-  <details class="panel" id="records">
-    <summary>わたしの記録 <span class="chip" id="recCount"></span> <button type="button" class="help" data-help="hRec" aria-expanded="false" aria-label="説明を見る">?</button></summary>
-    <div class="helptext" id="hRec" hidden><ul>
-      <li>記録はこの端末のブラウザの中だけに保存され、ほかの人やネットには送られない</li>
-      <li>Safariは7日間開かないと保存した記録を消すことがある。ホーム画面に追加して開くか、ときどき「JSONで書き出す」で保存を</li>
-      <li>★は、同じパート・範囲・難易度で一番よかった回</li></ul></div>
-    <ul class="recs" id="recList"></ul>
-    <div class="actions">
-      <button class="btn" id="btnExport" type="button">JSONで書き出す</button>
-      <label class="btn" for="recFile">JSONを読み込む</label>
-      <input type="file" id="recFile" accept="application/json,.json" hidden>
-      <button class="btn" id="btnClear" type="button">記録を消す</button>
-    </div>
-    <div class="actions" id="clearConfirm" hidden>
-      <span class="msg warn">この端末の記録をすべて消します。元に戻せません。</span>
-      <button class="btn primary" id="btnClearYes" type="button">消す</button>
-      <button class="btn" id="btnClearNo" type="button">やめる</button>
-    </div>
-    <div class="msg" id="recMsg"></div>
-  </details>
 
   <footer><a href="mic-test.html">マイク動作テスト</a></footer>
 </div>
@@ -707,40 +681,8 @@ function showScore(finished){
 const PART_NAME={S:"ソプラノ",A:"アルト",M:"男声"};
 function loadRecs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
-function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderRecs();renderProgressLink()}
+function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderProgressLink()}
 function fmtDate(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
-function renderRecs(){
-  const a=loadRecs(),box=$("recList");box.innerHTML="";
-  $("recCount").textContent=a.length?`${a.length}件`:"";$("recCount").hidden=!a.length;
-  if(!a.length){box.innerHTML='<li class="msg">まだ記録がありません</li>';return}
-  const best={};for(const x of a){const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;if(!best[k]||x.score>best[k])best[k]=x.score}
-  for(const x of a.slice().reverse().slice(0,30)){
-    const li=document.createElement("li");const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;
-    li.innerHTML=`<span class="rd"></span><span class="rp"></span><b class="rs"></b>`;
-    li.querySelector(".rd").textContent=fmtDate(x.at);
-    li.querySelector(".rp").textContent=`${PART_NAME[x.part]||"?"} ${x.from}〜${x.to}小節・${(MODES[x.mode]||{}).name||x.mode}${x.finished?"":"（途中）"}`;
-    li.querySelector(".rs").textContent=x.score+"%"+(best[k]===x.score?" ★":"");
-    box.appendChild(li)}
-}
-$("btnExport").addEventListener("click",()=>{
-  const blob=new Blob([JSON.stringify({app:"kite-karaoke",version:1,exportedAt:new Date().toISOString(),records:loadRecs()},null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`kite-records-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
-  $("recMsg").textContent="記録をJSONファイルとして書き出しました。";
-});
-$("recFile").addEventListener("change",async e=>{
-  const f=e.target.files[0];if(!f)return;
-  try{const j=JSON.parse(await f.text());const inc=(Array.isArray(j)?j:j.records||[]).filter(x=>x&&typeof x.score==="number"&&x.at);
-    const cur=loadRecs(),seen=new Set(cur.map(x=>x.at+x.part+x.from+x.to+x.mode));
-    const add=inc.filter(x=>!seen.has(x.at+x.part+x.from+x.to+x.mode));
-    saveRecs(cur.concat(add).sort((p,q)=>p.at<q.at?-1:1));renderRecs();
-    $("recMsg").textContent=`${add.length}件を読み込みました（重複は除きました）。`}
-  catch(err){$("recMsg").textContent="このファイルは読み込めませんでした。書き出したJSONファイルを選んでください。"}
-  e.target.value="";
-});
-$("btnClear").addEventListener("click",()=>{$("clearConfirm").hidden=false});
-$("btnClearNo").addEventListener("click",()=>{$("clearConfirm").hidden=true});
-$("btnClearYes").addEventListener("click",()=>{saveRecs([]);$("clearConfirm").hidden=true;renderRecs();$("recMsg").textContent="記録を消しました。"});
 function msg(t,warn){const m=$("msg");m.textContent=t;m.classList.toggle("warn",!!warn)}
 
 // ---- render ----
@@ -861,7 +803,7 @@ function renderProgressLink(){
 renderProgressLink();
 document.addEventListener("click",e=>{const b=e.target.closest(".help");if(!b)return;e.preventDefault();
   const t=document.getElementById(b.dataset.help);if(!t)return;t.hidden=!t.hidden;b.setAttribute("aria-expanded",t.hidden?"false":"true")});
-fillBars();renderRecs();resize();requestAnimationFrame(frame);
+fillBars();resize();requestAnimationFrame(frame);
 })();
 </script>
 </body>
