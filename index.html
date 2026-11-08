@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive,noimageindex">
-<title>カイト アルト練習</title>
+<title>カイト 合唱練習</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
 <style>
 /* Layout: one column practice console — controls, a sky-colored pitch stage, the lyric line, then the score. */
@@ -65,11 +65,7 @@ canvas{display:block;width:100%;height:260px}
 .meter{width:120px;height:10px;border-radius:5px;background:var(--line);overflow:hidden;position:relative}
 .meter i{display:block;height:100%;width:0;background:var(--accent)}
 .meter b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg)}
-.file{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.file input[type=range]{width:160px}
 details summary{cursor:pointer;font-weight:700}
-textarea{width:100%;min-height:110px;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:8px}
-textarea.ly{font-family:var(--body);font-size:1rem}
 code{font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:var(--bg);padding:1px 5px;border-radius:4px}
 ul{margin:0;padding-left:1.2em}
 footer{font-size:.8rem;color:var(--muted)}
@@ -79,18 +75,22 @@ footer a{color:inherit}
 <body>
 <div class="wrap">
   <header>
-    <h1>カイト<span>・</span>アルト練習</h1>
-    <div class="sub">混声三部合唱 アルトパート　♩=89　変ニ長調（♭5つ）</div>
+    <h1>カイト<span>・</span>合唱練習</h1>
+    <div class="sub">混声三部合唱　♩=89　変ニ長調（♭5つ）</div>
   </header>
 
   <div class="row">
+    <div class="group"><span class="label">パート</span>
+      <div class="seg" id="partSeg">
+        <button type="button" data-v="S" aria-pressed="false">ソプラノ</button>
+        <button type="button" data-v="A" aria-pressed="true">アルト</button>
+        <button type="button" data-v="M" aria-pressed="false">男声</button>
+      </div></div>
     <div class="group"><span class="label">判定</span>
       <div class="seg" id="modeSeg">
         <button type="button" data-v="easy" aria-pressed="true">やさしい（±半音）</button>
         <button type="button" data-v="normal" aria-pressed="false">ふつう</button>
       </div></div>
-    <div class="group"><label class="label" for="tempo">テンポ</label>
-      <select id="tempo"><option value="1">100%</option><option value="0.85">85%</option><option value="0.7">70%</option></select></div>
     <div class="group"><span class="label">練習する小節</span>
       <div class="rangeSel"><select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select></div></div>
     <div class="group"><label class="label" for="guide">お手本の音</label>
@@ -120,47 +120,6 @@ footer a{color:inherit}
     <div class="msg" id="msg">「マイクで歌う」を押すと4拍のカウントのあとに始まります。お手本の音をスピーカーで鳴らすとマイクが拾ってしまうので、イヤホンを使うか「お手本の音：なし」にしてください。</div>
   </div>
 
-  <details class="panel" id="lyEditor">
-    <summary>歌詞を入れる（この端末だけに保存）</summary>
-    <div class="msg">歌詞はこのページに入っていません。手元の楽譜を見て、音符1つにつき1かたまりを、スペースで区切って入れてください。のばす音は <code>ー</code>、歌詞のない音は <code>_</code> です。入れた歌詞はこのiPhoneのSafariの中にだけ保存され、ほかの人には見えません。</div>
-    <textarea id="lyText" class="ly" spellcheck="false" placeholder="例：あい う ー え お"></textarea>
-    <div class="actions">
-      <button class="btn primary" id="btnLy" type="button">歌詞を反映</button>
-      <span class="msg" id="lyMsg"></span>
-    </div>
-  </details>
-
-  <details class="panel">
-    <summary>録音ファイルで採点する</summary>
-    <div class="msg">マイクがうまく使えないときの予備です。ボイスメモなどで録音したファイルを選び、録音の何秒目から歌い始めたかを「頭出し」で合わせます。</div>
-    <div class="file">
-      <input type="file" id="fileIn" accept="audio/*">
-      <label for="offset" class="label">頭出し <span id="offVal">0.0</span> 秒</label>
-      <input type="range" id="offset" min="0" max="20" step="0.1" value="0">
-      <button class="btn" id="btnFile" type="button" disabled>録音を再生して採点</button>
-    </div>
-    <div class="msg" id="fileMsg"></div>
-  </details>
-
-  <details class="panel">
-    <summary>音符データ（続きを入力する）</summary>
-    <div class="msg">入っているのはアルトの全100小節です（楽譜写真と1音ずつ照合済み）。</div>
-    <ul class="msg">
-      <li>1音を <code>音名オクターブ:拍数</code> で書きます。例 <code>Db4:1.5</code>（レ♭・付点4分）</li>
-      <li>拍数は4分音符=1。8分=0.5、16分=0.25、付点4分=1.5、2分=2</li>
-      <li>タイ（同じ高さの音をつなぐ曲線）は、前の音の後ろに <code>~</code>。例 <code>F4:0.25~ | F4:1</code> は1つの音として伸ばします</li>
-      <li>拍子が変わる小節の頭に <code>@2</code>（2/4拍子）、戻すときは <code>@4</code></li>
-      <li>休符は <code>r:0.5</code>。<code>|</code> は小節線の目印で、無視されます</li>
-      <li>真ん中のドが <code>C4</code>。♭は <code>b</code>、♯は <code>#</code>（例 <code>Gb4</code>、<code>F#3</code>）</li>
-    </ul>
-    <textarea id="edText" spellcheck="false"></textarea>
-    <div class="actions">
-      <button class="btn primary" id="btnApply" type="button">反映する</button>
-      <button class="btn" id="btnReset" type="button">最初のデータに戻す</button>
-    </div>
-    <div class="msg" id="edMsg">入力はこの端末のブラウザにだけ保存されます。</div>
-  </details>
-
   <footer>個人の練習用ページです。<a href="mic-test.html">マイク動作テスト</a></footer>
 </div>
 
@@ -168,6 +127,222 @@ footer a{color:inherit}
 (()=>{
 const BPM=89;
 const SAMPLE={
+S:`# 1-6
+Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
+Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
+Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
+C5:1.5 Db5:0.5 Db5:1 r:0.5 Db5:0.5 |
+C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 F4:1 r:0.5 Eb4:0.25 F4:0.25 |
+Gb4:1.5 F4:0.25 Eb4:0.25 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
+# 7-8
+Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
+Db4:2 r:2 |
+# 9-12 [A] 休み
+r:16 |
+# 13-14
+Bb4:2 Ab4:2 |
+Gb4:2 F4:1 r:0.5 Bb3:0.25 Db4:0.25 |
+# 15-18 [B]
+Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
+Db4:2 r:2 |
+r:3 Eb4:0.5 F4:0.25 Gb4:0.25~ |
+Gb4:1 F4:0.5 Eb4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
+# 19-20
+r:4 |
+r:3.5 Db4:0.5 |
+# 21-25（25はD♮）
+Bb4:0.5 Gb4:0.5 Ab4:0.5 Bb4:0.5 C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 |
+F4:1.5 Bb4:0.5 Bb4:1 r:0.5 Bb4:0.5 |
+Ab4:0.5 Gb4:0.5 F4:0.5 Gb4:0.5 Ab4:1 Db4:1 |
+Bb4:1.5 A4:0.25 Bb4:0.25 C5:2 |
+r:2 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+# 26-33（♭2つの調）
+C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
+G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
+G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
+D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
+Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
+A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
+# 34-42 休み（35から♭5つの調）
+r:32 |
+r:3.5 Db4:0.5 |
+# 43-48 [E]（1-6小節と同じ）
+Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
+Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
+Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
+C5:1.5 Db5:0.5 Db5:1 r:0.5 Db5:0.5 |
+C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 F4:1 r:0.5 Eb4:0.25 F4:0.25 |
+Gb4:1.5 F4:0.25 Eb4:0.25 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
+# 49-52 [F]（15-18小節と同じ）
+Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
+Db4:2 r:2 |
+r:3 Eb4:0.5 F4:0.25 Gb4:0.25~ |
+Gb4:1 F4:0.5 Eb4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
+# 53-54
+r:4 |
+r:3.5 Db4:0.5 |
+# 55-59（21-25小節と同じ）
+Bb4:0.5 Gb4:0.5 Ab4:0.5 Bb4:0.5 C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 |
+F4:1.5 Bb4:0.5 Bb4:1 r:0.5 Bb4:0.5 |
+Ab4:0.5 Gb4:0.5 F4:0.5 Gb4:0.5 Ab4:1 Db4:1 |
+Bb4:1.5 A4:0.25 Bb4:0.25 C5:2 |
+r:2 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+# 60-67 [G]
+C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
+G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
+G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
+D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
+Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
+A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
+# 68 休み
+r:4 |
+# 69-72 [H]
+D4:0.5 F4:0.5 Bb4:0.5 C5:0.5~ C5:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
+F4:0.5 A4:0.5 C5:0.5 Eb5:0.5~ Eb5:0.5 D5:0.5 C5:0.5 Bb4:0.5~ |
+Bb4:2 r:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
+F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
+# 73-76
+D4:0.5 F4:0.5 Bb4:0.5 Bb4:0.25 C5:0.25~ C5:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
+F4:0.5 A4:0.5 C5:0.5 Eb5:0.5~ Eb5:0.5 D5:0.5 C5:0.5 Bb4:0.5~ |
+Bb4:2 r:0.5 Bb4:0.5 C5:0.5 D5:0.5 |
+G4:1 A4:1 Bb4:1 r:0.5 A4:0.25 G4:0.25 |
+# 77 は2/4拍子
+@2 F4:1 Bb4:1 |
+@4 Eb5:4~ |
+Eb5:0.5 r:3 D5:0.25 C5:0.25 |
+D5:1.5 C5:0.25 Bb4:0.25 A4:1.5 Bb4:0.5 |
+# 81-84 [I]
+Bb4:3 r:1 |
+r:4 |
+C5:4 |
+F5:1.5 r:0.5 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+# 85-92 [J]（26-33小節と同じ）
+C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
+G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
+G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
+C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
+D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
+Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
+A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
+# 93-96 [K]
+r:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
+A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
+r:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
+A4:0.5 Bb4:0.5~ Bb4:3~ |
+# 97-100（98-99は2つに分かれる。上の声を採用）
+Bb4:4 |
+C5:4 |
+Eb5:4 |
+r:4 |`,
+M:`# 1-7 休み
+r:28 |
+r:3.5 Db3:0.5 |
+# 9-12 [A]
+Db3:1.5 Ab3:0.5 Ab3:1 r:0.5 Db3:0.5 |
+Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 F3:1 r:0.5 Eb3:0.5 |
+Db3:0.5 Eb3:0.5 F3:0.5 Ab3:0.5 Bb3:1 F3:1 |
+C4:1.5 Db4:0.5 Db4:1 r:0.5 Db4:0.5 |
+# 13-16
+C4:0.5 Bb3:0.5 Ab3:0.5 Gb3:0.5 F3:1 r:0.5 Eb3:0.25 F3:0.25 |
+Gb3:1.5 F3:0.25 Eb3:0.25 Db3:1 r:0.5 F3:0.5 |
+Gb3:1 Gb3:0.25 Gb3:0.25 Gb3:0.5 Ab3:1.5 Gb3:0.5 |
+Gb3:2 r:2 |
+# 17-20 [B]（G3 = ソ♮, A3 = ラ♮）
+r:8 |
+r:3 F3:0.5 Gb3:0.25 G3:0.25~ |
+G3:1 A3:0.5 Bb3:0.25 Bb3:0.25~ Bb3:0.5 r:1.5 |
+# 21-25
+r:4 |
+r:3.5 Bb3:0.5 |
+Ab3:0.5 Gb3:0.5 F3:0.5 Gb3:0.5 Ab3:1 Db3:1 |
+Gb3:1.5 Gb3:0.25 Gb3:0.25 F3:2 |
+r:2 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+# 26-33 [C]（♭2つの調）
+Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
+G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
+Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
+F3:0.5 F3:0.5~ F3:2 r:1 |
+# 34 休み
+r:4 |
+# 35-42 [D]（♭5つの調）
+Db3:1.5 Ab3:0.5 Ab3:1 r:0.5 Db3:0.5 |
+Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 F3:1 r:0.5 Eb3:0.5 |
+Db3:0.5 Eb3:0.5 F3:0.5 Ab3:0.5 Bb3:1 F3:1 |
+C4:1.5 Db4:0.5 Db4:1 r:0.5 Db4:0.5 |
+C4:0.5 Bb3:0.5 Ab3:0.5 Gb3:0.5 F3:1 r:0.5 Eb3:0.25 F3:0.25 |
+Gb3:1.5 F3:0.25 Eb3:0.25 Db3:1 r:0.5 Db3:0.25 Db3:0.25 |
+Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 Eb3:1.5 Db3:0.5 |
+Db3:2 r:2 |
+# 43-52 休み
+r:40 |
+# 53-56
+r:3 Ab3:0.5 Ab3:0.25 A3:0.25~ |
+A3:1 A3:0.5 Bb3:0.25 Bb3:0.25~ Bb3:0.5 r:1.5 |
+r:4 |
+r:3.5 Bb3:0.5 |
+# 57-59（23-25小節と同じ）
+Ab3:0.5 Gb3:0.5 F3:0.5 Gb3:0.5 Ab3:1 Db3:1 |
+Gb3:1.5 Gb3:0.25 Gb3:0.25 F3:2 |
+r:2 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+# 60-67 [G]（26-33小節と同じ）
+Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
+G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
+Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
+F3:0.5 F3:0.5~ F3:2 r:1 |
+# 68 休み
+r:4 |
+# 69-72 [H]
+F3:2 G3:2 |
+A3:4 |
+Bb3:2 r:0.5 Bb3:0.5 A3:0.5 G3:0.5 |
+F3:0.5 F3:0.5 G3:0.5 A3:0.5 Bb3:1 r:1 |
+# 73-76
+F3:0.5 F3:0.5 F3:0.5 F3:0.25 G3:0.25~ G3:0.5 G3:0.5 G3:0.5 G3:0.5 |
+A3:0.5 A3:0.5 A3:0.5 A3:0.5~ A3:0.5 A3:0.5 A3:0.5 Bb3:0.5~ |
+Bb3:2 r:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5 |
+Bb3:1 A3:1 Bb3:1 r:0.5 A3:0.25 G3:0.25 |
+# 77 は2/4拍子
+@2 F3:1 Bb3:1 |
+@4 Bb3:4~ |
+Bb3:0.5 r:3.5 |
+r:4 |
+# 81-84 [I]
+F3:4~ |
+F3:4 |
+Bb3:4 |
+Bb3:1.5 r:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+# 85-92 [J]（26-33小節と同じ）
+Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
+G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
+Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
+G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
+Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
+F3:0.5 F3:0.5~ F3:2 r:1 |
+# 93-96 [K]
+r:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
+F3:0.5 F3:0.5~ F3:2 r:1 |
+r:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
+F3:0.5 G3:0.5~ G3:3~ |
+# 97-100
+G3:4 |
+Bb3:4~ |
+Bb3:4 |
+r:4 |`,
 A:`# 1-4
 Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
@@ -283,8 +458,7 @@ Eb4:4 |
 r:4 |`
 };
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
-const texts={},lyrics={};
-for(const p of "A"){texts[p]=store.get("kite-part-v6-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
+
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 function parse(text){
@@ -309,14 +483,9 @@ function parse(text){
   for(let b=0;b<beat-1e-6;){while(mi<meters.length&&meters[mi].beat<=b+1e-6){len=meters[mi].len;mi++}bars.push(b);b+=len}
   return {notes,total:beat,errs,bars};
 }
-function build(p){
-  const s=parse(texts[p]);
-  const toks=lyrics[p].trim()?lyrics[p].trim().split(/\s+/):[];
-  toks.forEach((t,i)=>{if(s.notes[i])s.notes[i].lyric=t==="_"?"":t});
-  return s;
-}
+function build(p){return parse(SAMPLE[p])}
 
-const part="A";let mode="easy";
+let part=(store.get("kite-voice")||"A");if(!"SAM".includes(part)||part.length!==1)part="A";let mode="easy";
 let song=build(part);
 const $=id=>document.getElementById(id);
 const cv=$("cv"),ctx2=cv.getContext("2d");
@@ -372,7 +541,7 @@ function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"squa
 
 // ---- session ----
 let run=null,trail=[],frames=0,hits=0;
-function spb(){return 60/(BPM*parseFloat($("tempo").value))}
+function spb(){return 60/BPM}
 function tol(){return mode==="easy"?100:50}
 function nBars(){return Math.max(1,song.bars.length)}
 function barOf(beat){let i=0;while(i+1<song.bars.length&&song.bars[i+1]<=beat+1e-6)i++;return i}
@@ -413,31 +582,6 @@ function startGuideOnly(){
   run={kind:"guide",start0,spb:s,...r};msg("お手本を再生中です。");uiRunning(true);
 }
 
-let fileBuf=null,fileTrack=null;
-$("fileIn").addEventListener("change",async e=>{
-  const f=e.target.files[0];if(!f)return;
-  $("fileMsg").textContent="読み込み中…";$("btnFile").disabled=true;
-  try{
-    const ab=await f.arrayBuffer();
-    fileBuf=await new Promise((ok,ng)=>{const p=AC().decodeAudioData(ab,ok,ng);if(p&&p.catch)p.catch(ng)});
-    const ch=fileBuf.getChannelData(0),sr=fileBuf.sampleRate,hop=Math.round(sr*0.02),win=2048,track=[],g=gate();
-    for(let i=0;i+win<ch.length;i+=hop){
-      const f0=yin(down2(ch.subarray(i,i+win)),sr/2,g);track.push(f0?hz2midi(f0):null);
-      if(track.length%150===0){$("fileMsg").textContent=`音程を解析中… ${Math.round(i/ch.length*100)}%`;await new Promise(r=>setTimeout(r,0))}
-    }
-    fileTrack=track;$("btnFile").disabled=false;
-    $("fileMsg").textContent=`解析できました（${fileBuf.duration.toFixed(1)}秒）。「録音を再生して採点」を押してください。`;
-  }catch(err){$("fileMsg").textContent="このファイルは読み込めませんでした。m4a・mp3・wav などの音声ファイルを選んでください。"}
-});
-$("offset").addEventListener("input",e=>$("offVal").textContent=(+e.target.value).toFixed(1));
-function startFile(){
-  if(!fileBuf)return;stopAll();
-  const a=AC(),s=spb(),off=parseFloat($("offset").value),t0=a.currentTime+0.2;
-  const src=a.createBufferSource();src.buffer=fileBuf;src.connect(a.destination);src.start(t0);
-  const r=rng();scheduleGuide(t0+off,s,r.b0,r.b1);resetScore();
-  run={kind:"file",start0:t0+off,recStart:t0,spb:s,...r,src,lastIdx:-1};
-  msg("録音を再生しながら採点しています。テンポは録音したときと同じ設定にしてください。");uiRunning(true);
-}
 
 function stopAll(finished){
   if(!run)return;
@@ -447,7 +591,7 @@ function stopAll(finished){
   const kind=run.kind;run=null;uiRunning(false);$("lvl").style.width="0";
   if(kind!=="guide")showScore(finished);
 }
-function uiRunning(on){$("btnStop").disabled=!on;$("btnMic").disabled=on;$("btnGuide").disabled=on;$("btnFile").disabled=on||!fileTrack}
+function uiRunning(on){$("btnStop").disabled=!on;$("btnMic").disabled=on;$("btnGuide").disabled=on}
 function showScore(finished){
   if(!frames){$("scoreNum").textContent="--";$("scoreLbl").textContent="判定できる声がありませんでした";
     msg(song.notes.some(n=>n.start>=rng().b0&&n.start<rng().b1)?"声が拾えていません。マイク感度を右に上げてみてください。":"選んだ範囲はアルトが休みの小節だけです。範囲を変えてください。",true);return}
@@ -477,13 +621,6 @@ function frame(){
       run.last=a.currentTime;run.analyser.getFloatTimeDomainData(run.buf);
       const half=down2(run.buf);$("lvl").style.width=(meterScale(rmsOf(half))*100)+"%";
       if(t>=0){const f0=yin(half,a.sampleRate/2,gate());judge(beat,f0?hz2midi(f0):null)}
-    }
-    if(run.kind==="file"&&t>=0){
-      const idx=Math.floor((a.currentTime-run.recStart)/0.02);
-      for(let i=Math.max(run.lastIdx+1,0);i<=idx&&i<fileTrack.length;i++){
-        const dt=i*0.02-(run.start0-run.recStart);if(dt>=0)judge(run.b0+dt/run.spb,fileTrack[i]);
-      }
-      run.lastIdx=idx;
     }
     if(beat>run.b1+0.5)stopAll(true);
   }
@@ -551,28 +688,12 @@ for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll
   store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
   trail=[];lastLy=null;$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 seg("modeSeg",v=>{mode=v});
+document.querySelectorAll("#partSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===part?"true":"false"));
+seg("partSeg",v=>{part=v;store.set("kite-voice",v);reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 
-const lyPart="A";
-function lyCount(){const n=parse(texts[lyPart]).notes.length,k=lyrics[lyPart].trim()?lyrics[lyPart].trim().split(/\s+/).length:0;
-  $("lyMsg").textContent=`音符 ${n} 個／歌詞 ${k} 個`}
-$("lyText").value=lyrics.A;lyCount();
-$("btnLy").addEventListener("click",()=>{lyrics[lyPart]=$("lyText").value;store.set("kite-lyrics-"+lyPart,lyrics[lyPart]);if(lyPart===part)reload();lyCount();
-  $("lyMsg").textContent+="　反映しました"});
-
-const edPart="A";
-$("edText").value=texts.A;
-$("btnApply").addEventListener("click",()=>{
-  const t=$("edText").value,r=parse(t);
-  if(r.errs.length){$("edMsg").textContent="読めない箇所があります："+r.errs.slice(0,4).join("、");return}
-  texts[edPart]=t;store.set("kite-part-v6-"+edPart,t);if(edPart===part)reload();
-  $("edMsg").textContent=`反映しました（${r.notes.length}音・${r.bars.length}小節）。`;
-});
-$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v6-"+edPart);$("edText").value=SAMPLE[edPart];
-  if(edPart===part)reload();$("edMsg").textContent="最初のデータに戻しました。"});
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
 $("btnStop").addEventListener("click",()=>stopAll(false));
-$("btnFile").addEventListener("click",startFile);
 fillBars();resize();requestAnimationFrame(frame);
 })();
 </script>
