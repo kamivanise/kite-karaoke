@@ -144,11 +144,12 @@ footer a{color:inherit}
 
   <details class="panel">
     <summary>音符データ（続きを入力する）</summary>
-    <div class="msg">入っているのはアルトの1〜76小節です（楽譜写真と1音ずつ照合済み）。77小節目以降はここに書き足せます。</div>
+    <div class="msg">入っているのはアルトの全100小節です（楽譜写真と1音ずつ照合済み）。</div>
     <ul class="msg">
       <li>1音を <code>音名オクターブ:拍数</code> で書きます。例 <code>Db4:1.5</code>（レ♭・付点4分）</li>
       <li>拍数は4分音符=1。8分=0.5、16分=0.25、付点4分=1.5、2分=2</li>
       <li>タイ（同じ高さの音をつなぐ曲線）は、前の音の後ろに <code>~</code>。例 <code>F4:0.25~ | F4:1</code> は1つの音として伸ばします</li>
+      <li>拍子が変わる小節の頭に <code>@2</code>（2/4拍子）、戻すときは <code>@4</code></li>
       <li>休符は <code>r:0.5</code>。<code>|</code> は小節線の目印で、無視されます</li>
       <li>真ん中のドが <code>C4</code>。♭は <code>b</code>、♯は <code>#</code>（例 <code>Gb4</code>、<code>F#3</code>）</li>
     </ul>
@@ -250,19 +251,49 @@ F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
 D4:0.5 D4:0.5 D4:0.5 D4:0.25 Eb4:0.75 Eb4:0.5 Eb4:0.5 Eb4:0.5 |
 F4:0.5 F4:0.5 F4:0.5 F#4:1 F#4:0.5 F#4:0.5 G4:0.5~ |
 G4:2 r:0.5 G4:0.5 G4:0.5 G4:0.5 |
-Eb4:1 C4:1 D4:1 r:0.5 A4:0.25 G4:0.25 |`
+Eb4:1 C4:1 D4:1 r:0.5 A4:0.25 G4:0.25 |
+# 77 は2/4拍子、78から4/4拍子
+@2 F4:1 F4:1 |
+@4 Gb4:4~ |
+Gb4:0.5 r:3.5 |
+r:4 |
+# 81-84 [I]
+r:4 |
+D4:4 |
+Eb4:4 |
+Bb4:1.5 r:0.5 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
+# 85-92 [J]（26-33小節と同じ）
+F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
+D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
+Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
+Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
+G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
+Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
+G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
+C4:0.5 D4:0.5~ D4:2 r:1 |
+# 93-96 [K]
+r:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
+C4:0.5 D4:0.5~ D4:2 r:1 |
+r:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
+C4:0.5 D4:0.5~ D4:3~ |
+# 97-100
+D4:4 |
+Eb4:4~ |
+Eb4:4 |
+r:4 |`
 };
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const texts={},lyrics={};
-for(const p of "A"){texts[p]=store.get("kite-part-v5-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
+for(const p of "A"){texts[p]=store.get("kite-part-v6-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 function parse(text){
-  const notes=[];let beat=0;const errs=[];
+  const notes=[];let beat=0;const errs=[];const meters=[{beat:0,len:4}];
   text.split("\n").forEach((line,li)=>{
     line=line.replace(/(^|\s)#.*/,"");
     for(const tok of line.split(/[\s|]+/)){
       if(!tok)continue;
+      if(tok[0]==="@"){const L=parseFloat(tok.slice(1));if(L>0)meters.push({beat,len:L});else errs.push(`${li+1}行目「${tok}」の拍子`);continue}
       const [p,d,...ly]=tok.split(":");const dur=parseFloat(d);
       if(!(dur>0)){errs.push(`${li+1}行目「${tok}」の拍数`);continue}
       if(p==="r"||p==="R"){beat+=dur;continue}
@@ -274,7 +305,9 @@ function parse(text){
       notes.push({midi,sp:m[1].toUpperCase()+(m[2]||""),start:beat,dur,lyric:ly.join(":"),frames:0,hit:0,tie:tok.endsWith("~")});beat+=dur;
     }
   });
-  return {notes,total:beat,errs};
+  const bars=[];let mi=0,len=4;
+  for(let b=0;b<beat-1e-6;){while(mi<meters.length&&meters[mi].beat<=b+1e-6){len=meters[mi].len;mi++}bars.push(b);b+=len}
+  return {notes,total:beat,errs,bars};
 }
 function build(p){
   const s=parse(texts[p]);
@@ -341,8 +374,10 @@ function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"squa
 let run=null,trail=[],frames=0,hits=0;
 function spb(){return 60/(BPM*parseFloat($("tempo").value))}
 function tol(){return mode==="easy"?100:50}
-function nBars(){return Math.max(1,Math.ceil(song.total/4))}
-function rng(){let a=+$("barFrom").value||1,b=+$("barTo").value||nBars();if(b<a)[a,b]=[b,a];return{a,b,b0:(a-1)*4,b1:b*4}}
+function nBars(){return Math.max(1,song.bars.length)}
+function barOf(beat){let i=0;while(i+1<song.bars.length&&song.bars[i+1]<=beat+1e-6)i++;return i}
+function barEnd(i){return i+1<song.bars.length?song.bars[i+1]:song.total}
+function rng(){let a=+$("barFrom").value||1,b=+$("barTo").value||nBars();if(b<a)[a,b]=[b,a];return{a,b,b0:song.bars[a-1]||0,b1:barEnd(b-1)}}
 function fillBars(){
   const n=nBars();let f=+(store.get("kite-from")||1),t=+(store.get("kite-to")||n);
   f=Math.min(Math.max(1,f),n);t=Math.min(Math.max(1,t),n);
@@ -420,7 +455,7 @@ function showScore(finished){
   $("scoreNum").textContent=p+"%";
   const r=rng();
   $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+(mode==="easy"?"やさしい":"ふつう")+"判定・"+(finished?"最後まで":"途中まで");
-  const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${Math.floor(n.start/4)+1}小節目`)});
+  const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${barOf(n.start)+1}小節目`)});
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
 }
 function msg(t,warn){const m=$("msg");m.textContent=t;m.classList.toggle("warn",!!warn)}
@@ -463,7 +498,7 @@ function draw(beat){
   const [lo,hi]=range(),pad=14,y=m=>pad+(hi-m)/(hi-lo)*(H-2*pad),lane=(H-2*pad)/(hi-lo);
   const ppb=Math.max(48,Math.min(80,W/9)),px=W*0.22,x=b=>px+(b-beat)*ppb;
   c.strokeStyle=css("--grid");c.lineWidth=1;
-  for(let b=Math.floor(beat-px/ppb);b<beat+(W-px)/ppb+1;b++){if(b<0||b%4)continue;c.beginPath();c.moveTo(x(b)+.5,0);c.lineTo(x(b)+.5,H);c.stroke()}
+  for(const b of song.bars){const xx=x(b);if(xx<-2||xx>W+2)continue;c.beginPath();c.moveTo(xx+.5,0);c.lineTo(xx+.5,H);c.stroke()}
   {const r=run||rng(),xa=x(r.b0),xb=x(r.b1);c.fillStyle=css("--bg");c.globalAlpha=.55;
     if(xa>0)c.fillRect(0,0,xa,H);if(xb<W)c.fillRect(xb,0,W-xb,H);c.globalAlpha=1}
   const noteCol=css("--note"),hitCol=css("--note-hit"),ink=css("--fg"),solCol=css("--muted");
@@ -499,8 +534,8 @@ function kite(c,x,y,ok){c.save();c.translate(x,y);c.fillStyle=ok?css("--accent")
   c.strokeStyle=css("--tail");c.lineWidth=2;c.beginPath();c.moveTo(0,11);c.quadraticCurveTo(-8,20,-16,16);c.stroke();c.restore()}
 let lastLy=null;
 function lyricLine(beat){
-  const bar=Math.max(0,Math.floor(beat/8))*8;
-  const ns=song.notes.filter(n=>n.start>=bar&&n.start<bar+8);
+  const bi=barOf(Math.max(0,beat)),bs=bi-bi%2,bar=song.bars[bs]||0,barE=barEnd(Math.min(bs+1,song.bars.length-1));
+  const ns=song.notes.filter(n=>n.start>=bar&&n.start<barE);
   let html=ns.map(n=>{const cls=beat>=n.start+n.dur?"done":beat>=n.start?"now":"";
     return n.lyric?`<ruby class="${cls}">${esc(n.lyric)}<rt>${noteSol(n)}</rt></ruby>`:`<span class="sol ${cls}">${noteSol(n)}</span>`}).join("");
   if(!ns.length)html=song.notes.length&&beat>=song.total?"":"<small>この区間は休みです</small>";
@@ -529,10 +564,10 @@ $("edText").value=texts.A;
 $("btnApply").addEventListener("click",()=>{
   const t=$("edText").value,r=parse(t);
   if(r.errs.length){$("edMsg").textContent="読めない箇所があります："+r.errs.slice(0,4).join("、");return}
-  texts[edPart]=t;store.set("kite-part-v5-"+edPart,t);if(edPart===part)reload();
-  $("edMsg").textContent=`反映しました（${r.notes.length}音・${(r.total/4).toFixed(1)}小節）。`;
+  texts[edPart]=t;store.set("kite-part-v6-"+edPart,t);if(edPart===part)reload();
+  $("edMsg").textContent=`反映しました（${r.notes.length}音・${r.bars.length}小節）。`;
 });
-$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v5-"+edPart);$("edText").value=SAMPLE[edPart];
+$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v6-"+edPart);$("edText").value=SAMPLE[edPart];
   if(edPart===part)reload();$("edMsg").textContent="最初のデータに戻しました。"});
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
