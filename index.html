@@ -786,9 +786,9 @@ function renderProgressLink(){
   const recs=loadRecs().filter(x=>x.part===part&&x.mode===mode&&x.blocks);const per={};
   for(const x of recs)for(const [k,v] of Object.entries(x.blocks))(per[k]=per[k]||[]).push(v);
   let meta={};try{meta=JSON.parse(store.get("kite-meta")||"{}")}catch(e){}
-  const has=meta[part]||new Array(25).fill(true);let pass=0,tot=0;
-  for(let k=1;k<=25;k++){if(!has[k-1])continue;tot++;const a=(per[k]||[]).sort((p,q)=>q-p);if(a.length>=2&&a[1]>=70)pass++}
-  $("progSummary").textContent=`${PART_NAME[part]}・${MODES[mode].name}：合格 ${pass} / ${tot} ブロック`;
+  const has=meta[part]||new Array(25).fill(true);let pass=0,exc=0,tot=0;
+  for(let k=1;k<=25;k++){if(!has[k-1])continue;tot++;const a=(per[k]||[]).sort((p,q)=>q-p);if(a.length>=2&&a[1]>=70)pass++;if(a.length>=2&&a[1]>=85)exc++}
+  $("progSummary").textContent=`${PART_NAME[part]}・${MODES[mode].name}：合格 ${pass} / ${tot} ブロック（うちExcellent ${exc}）`;
 }
 renderProgressLink();
 fillBars();renderRecs();resize();requestAnimationFrame(frame);

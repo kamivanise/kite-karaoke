@@ -11,15 +11,15 @@
 :root{
   --bg:#f3f6fa; --surface:#ffffff; --fg:#17202c; --muted:#5d6b7c; --line:#d6dee8;
   --accent:#d8432f; --grid:#e1e0d9; --axis:#c3c2b7;
-  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --none:#c9d1db; --rest:#eef1f5;
-  --good-ink:#006300; --warn-ink:#8a5a00; --crit-ink:#b02a2a;
+  --exc:#2a62d6; --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --none:#c9d1db; --rest:#eef1f5;
+  --exc-ink:#1d4fb8; --good-ink:#006300; --warn-ink:#8a5a00; --crit-ink:#b02a2a;
   --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#0f141b; --surface:#18202b; --fg:#e8eef5; --muted:#95a3b5; --line:#2b3644;
   --accent:#ef6a52; --grid:#2c2c2a; --axis:#383835;
-  --none:#3a4656; --rest:#1d2632; --good-ink:#57c995; --warn-ink:#f0b04a; --crit-ink:#ff8a80; color-scheme:dark}}
+  --none:#3a4656; --rest:#1d2632; --exc:#5b8cff; --exc-ink:#8fb0ff; --good-ink:#57c995; --warn-ink:#f0b04a; --crit-ink:#ff8a80; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--fg)}
 body{margin:0;font-family:var(--body);font-size:15px;line-height:1.6;
@@ -39,11 +39,11 @@ h2{font-size:1rem;margin:0}
 .seg button[aria-selected="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .tile{display:flex;flex-direction:column;gap:2px;border-left:4px solid var(--none);padding-left:10px}
 .tile b{font-family:var(--display);font-weight:400;font-size:1.8rem;line-height:1.1;font-variant-numeric:tabular-nums}
 .tile small{color:var(--muted);font-size:.78rem}
-.t-good{border-color:var(--good)} .t-warn{border-color:var(--warn)} .t-crit{border-color:var(--crit)}
+.t-exc{border-color:var(--exc)} .t-good{border-color:var(--good)} .t-warn{border-color:var(--warn)} .t-crit{border-color:var(--crit)}
 .chartbox{overflow-x:auto;position:relative}
 svg{display:block;width:100%;min-width:560px;height:auto}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
@@ -57,7 +57,7 @@ table{border-collapse:collapse;width:100%;font-size:.85rem}
 th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
 th{color:var(--muted);font-weight:400;font-size:.78rem}
 .tablewrap{overflow-x:auto}
-.st-good{color:var(--good-ink)} .st-warn{color:var(--warn-ink)} .st-crit{color:var(--crit-ink)}
+.st-exc{color:var(--exc-ink)} .st-good{color:var(--good-ink)} .st-warn{color:var(--warn-ink)} .st-crit{color:var(--crit-ink)}
 details summary{cursor:pointer;font-weight:700}
 </style>
 </head>
@@ -84,7 +84,8 @@ details summary{cursor:pointer;font-weight:700}
 
   <div class="panel">
     <div class="tiles">
-      <div class="tile t-good"><span class="label">✓ 合格（70点以上）</span><b id="nGood">0</b><small id="nTotal"></small></div>
+      <div class="tile t-exc"><span class="label">★ Excellent（85点以上）</span><b id="nExc">0</b><small id="nTotal"></small></div>
+      <div class="tile t-good"><span class="label">✓ 合格（70〜84点）</span><b id="nGood">0</b><small id="nPass"></small></div>
       <div class="tile t-warn"><span class="label">○ Good（50〜69点）</span><b id="nWarn">0</b><small>あと少し</small></div>
       <div class="tile t-crit"><span class="label">! 要練習（49点以下）</span><b id="nCrit">0</b><small id="nUntried"></small></div>
     </div>
@@ -93,7 +94,8 @@ details summary{cursor:pointer;font-weight:700}
   <div class="panel">
     <h2 id="chartTitle">ブロック別の習熟度</h2>
     <div class="legend">
-      <span><i style="background:var(--good)"></i>✓ 合格 70点以上</span>
+      <span><i style="background:var(--exc)"></i>★ Excellent 85点以上</span>
+      <span><i style="background:var(--good)"></i>✓ 合格 70〜84点</span>
       <span><i style="background:var(--warn)"></i>○ Good 50〜69点</span>
       <span><i style="background:var(--crit)"></i>! 要練習 49点以下</span>
       <span><i style="background:var(--none)"></i>1回だけ（もう1回で確定）</span>
@@ -130,8 +132,8 @@ let mode=store.get("kite-mode");if(!MODE[mode])mode="easy";
 function recs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function meta(){try{return JSON.parse(store.get("kite-meta")||"{}")}catch(e){return{}}}
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-function status(v){return v>=70?"good":v>=50?"warn":"crit"}
-const ST={good:{icon:"✓",name:"合格"},warn:{icon:"○",name:"Good"},crit:{icon:"!",name:"要練習"}};
+function status(v){return v>=85?"exc":v>=70?"good":v>=50?"warn":"crit"}
+const ST={exc:{icon:"★",name:"Excellent"},good:{icon:"✓",name:"合格"},warn:{icon:"○",name:"Good"},crit:{icon:"!",name:"要練習"}};
 function fmt(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 
 function compute(){
@@ -148,16 +150,16 @@ function render(){
     document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v?"true":"false"));
   const {list,blocks}=compute();
   $("chartTitle").textContent=`${PART[part]}・${MODE[mode]}のブロック別習熟度`;
-  let g=0,w=0,c=0,un=0,tot=0;
-  for(const b of blocks){if(b.rest)continue;tot++;if(b.second==null){un++;continue}const s=status(b.second);if(s==="good")g++;else if(s==="warn")w++;else c++}
-  $("nGood").textContent=g;$("nWarn").textContent=w;$("nCrit").textContent=c;
+  let e=0,g=0,w=0,c=0,un=0,tot=0;
+  for(const b of blocks){if(b.rest)continue;tot++;if(b.second==null){un++;continue}const s=status(b.second);if(s==="exc")e++;else if(s==="good")g++;else if(s==="warn")w++;else c++}
+  $("nExc").textContent=e;$("nGood").textContent=g;$("nPass").textContent=`合格以上 ${e+g} / ${tot}`;$("nWarn").textContent=w;$("nCrit").textContent=c;
   $("nTotal").textContent=`歌うブロック ${tot} 個のうち`;$("nUntried").textContent=un?`未確定 ${un} 個`:"";
   drawChart(blocks);
   // weak spots: lowest confirmed first, then single-attempt, then untried
   const cand=blocks.filter(b=>!b.rest&&!(b.second!=null&&b.second>=70));
   cand.sort((a,b)=>{const ka=a.second!=null?0:a.n?1:2,kb=b.second!=null?0:b.n?1:2;if(ka!==kb)return ka-kb;return (a.second??a.best??0)-(b.second??b.best??0)});
   const wk=$("weak");wk.innerHTML="";
-  if(!cand.length){wk.innerHTML='<span class="msg">全ブロック合格です。次の難易度に挑戦してみましょう。</span>'}
+  if(!cand.length){wk.innerHTML='<span class="msg">全ブロック合格です。Excellent（85点）を目指すか、次の難易度に挑戦してみましょう。</span>'}
   for(const b of cand.slice(0,6)){const sp=document.createElement("span");sp.className="chip";
     const txt=b.second!=null?`${b.second}点`:b.n?`1回だけ（${b.best}点）`:"未挑戦";
     sp.innerHTML=`ブロック${b.i+1}（${b.i*4+1}〜${b.i*4+4}小節） <b></b>`;sp.querySelector("b").textContent=txt;wk.appendChild(sp)}
@@ -177,13 +179,14 @@ function render(){
 function drawChart(blocks){
   const W=760,H=300,L=40,R=12,T=26,B=40,pw=W-L-R,ph=H-T-B,step=pw/25,bw=step-6;
   const y=v=>T+ph-(v/100)*ph,svg=$("chart");
-  const col={good:css("--good"),warn:css("--warn"),crit:css("--crit"),none:css("--none"),rest:css("--rest"),grid:css("--grid"),axis:css("--axis"),muted:css("--muted"),fg:css("--fg"),line:css("--line"),surface:css("--surface")};
+  const col={exc:css("--exc"),good:css("--good"),warn:css("--warn"),crit:css("--crit"),none:css("--none"),rest:css("--rest"),grid:css("--grid"),axis:css("--axis"),muted:css("--muted"),fg:css("--fg"),line:css("--line"),surface:css("--surface")};
   let h="";
-  for(const v of [0,25,50,70,100]){
-    const strong=v===50||v===70;
+  for(const v of [0,25,50,70,85,100]){
+    const strong=v===50||v===70||v===85;
     h+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${strong?col.muted:col.grid}" stroke-width="1" ${strong?'stroke-dasharray="5 4"':''}/>`;
     h+=`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${col.muted}">${v}</text>`}
   h+=`<text x="${W-R}" y="${y(70)-5}" text-anchor="end" font-size="11" font-weight="700" fill="${col.fg}">合格ライン 70</text>`;
+  h+=`<text x="${W-R}" y="${y(85)-5}" text-anchor="end" font-size="11" fill="${col.muted}">Excellent 85</text>`;
   h+=`<text x="${W-R}" y="${y(50)-5}" text-anchor="end" font-size="11" fill="${col.muted}">Good 50</text>`;
   blocks.forEach(b=>{
     const x=L+b.i*step+3,cx=x+bw/2;
