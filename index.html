@@ -75,6 +75,12 @@ footer{font-size:.8rem;color:var(--muted)}
 .recs .rp{min-width:0}
 .recs .rs{font-variant-numeric:tabular-nums}
 label.btn{display:inline-block}
+.help{flex:none;width:23px;height:23px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .8rem/1 var(--body);cursor:pointer;vertical-align:middle;letter-spacing:0}
+.help[aria-expanded="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.actions .help{align-self:center}
+.helptext{color:var(--muted);font-size:.84rem;line-height:1.75;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.helptext ul{margin:0;padding-left:1.2em}
+.label label{color:inherit}
 .proglink{text-decoration:none;color:var(--fg);border-color:var(--accent)}
 .proglink strong{font-size:1.05rem}
 .proglink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -95,7 +101,7 @@ footer a{color:inherit}
         <button type="button" data-v="A" aria-pressed="true">アルト</button>
         <button type="button" data-v="M" aria-pressed="false">男声</button>
       </div></div>
-    <div class="group"><span class="label">判定</span>
+    <div class="group"><span class="label">判定 <button type="button" class="help" data-help="hMode" aria-expanded="false" aria-label="説明を見る">?</button></span>
       <div class="seg" id="modeSeg">
         <button type="button" data-v="easy" aria-pressed="true">やさしい</button>
         <button type="button" data-v="normal" aria-pressed="false">ふつう</button>
@@ -105,16 +111,26 @@ footer a{color:inherit}
       <div class="rangeSel"><select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select></div></div>
     <div class="group"><label class="label" for="guide">お手本の音</label>
       <select id="guide"><option value="1">あり</option><option value="0">なし</option></select></div>
-    <div class="group"><label class="label" for="oct">オクターブ違い</label>
+    <div class="group"><span class="label"><label for="oct">オクターブ違い</label> <button type="button" class="help" data-help="hOct" aria-expanded="false" aria-label="説明を見る">?</button></span>
       <select id="oct"><option value="0">ズレ扱い</option><option value="1">OKにする</option></select></div>
   </div>
+  <div class="helptext" id="hMode" hidden><ul>
+    <li>やさしい：1音（全音）までのズレは正解</li>
+    <li>ふつう：半音までのズレは正解</li>
+    <li>むずかしい：半音の半分（50セント）まで</li>
+    <li>点数は、選んだ範囲で声の高さが合っていた時間の割合</li></ul></div>
+  <div class="helptext" id="hOct" hidden><ul>
+    <li>「OKにする」で、1オクターブ上や下で歌っても正解になる</li>
+    <li>男声パートを女性が歌うときなどに使う</li></ul></div>
 
   <div class="sens">
-    <label class="label" for="sens">マイク感度</label>
+    <span class="label"><label for="sens">マイク感度</label> <button type="button" class="help" data-help="hSens" aria-expanded="false" aria-label="説明を見る">?</button></span>
     <input type="range" id="sens" min="1" max="10" step="1" value="7">
     <div class="meter" aria-hidden="true"><i id="lvl"></i><b id="thr"></b></div>
-    <span class="msg" id="sensMsg">黒い線を声が超えると判定します</span>
   </div>
+  <div class="helptext" id="hSens" hidden><ul>
+    <li>右のメーターは声の大きさ。黒い線を超えた声だけを判定する</li>
+    <li>近づかないと反応しないときは右へ、周りの音を拾うときは左へ</li></ul></div>
 
   <div class="stage"><canvas id="cv" aria-label="音程バー"></canvas></div>
   <div class="lyric" id="lyric" aria-live="polite"></div>
@@ -123,22 +139,29 @@ footer a{color:inherit}
     <button class="btn primary" id="btnMic" type="button">マイクで歌う</button>
     <button class="btn" id="btnGuide" type="button">お手本だけ聴く</button>
     <button class="btn" id="btnStop" type="button" disabled>止める</button>
+    <button type="button" class="help" data-help="hSing" aria-expanded="false" aria-label="説明を見る">?</button>
   </div>
+  <div class="helptext" id="hSing" hidden><ul>
+    <li>4拍のカウントのあとに始まり、選んだ小節の終わりで止まる</li>
+    <li>お手本の音をスピーカーで鳴らすとマイクが拾う。イヤホンを使うか「お手本の音：なし」に</li>
+    <li>バーの上の点が自分の声。合っていると赤くなる</li></ul></div>
 
   <div class="panel">
     <div class="score"><b id="scoreNum">--</b><span id="scoreLbl" class="chip">まだ歌っていません</span></div>
-    <div class="msg" id="msg">「マイクで歌う」を押すと4拍のカウントのあとに始まります。お手本の音をスピーカーで鳴らすとマイクが拾ってしまうので、イヤホンを使うか「お手本の音：なし」にしてください。</div>
+    <div class="msg" id="msg"></div>
   </div>
 
   <a class="panel proglink" href="progress.html">
-    <span class="label">習熟度マップ</span>
-    <strong>どのブロックを何点で歌えるかを見る →</strong>
+    <strong>習熟度マップ →</strong>
     <span class="msg" id="progSummary"></span>
   </a>
 
   <details class="panel" id="records">
-    <summary>わたしの記録 <span class="chip" id="recCount"></span></summary>
-    <div class="msg">記録はこの端末のブラウザの中にだけ保存されます。ほかの人の端末やインターネット上には送られません。</div>
+    <summary>わたしの記録 <span class="chip" id="recCount"></span> <button type="button" class="help" data-help="hRec" aria-expanded="false" aria-label="説明を見る">?</button></summary>
+    <div class="helptext" id="hRec" hidden><ul>
+      <li>記録はこの端末のブラウザの中だけに保存され、ほかの人やネットには送られない</li>
+      <li>Safariは7日間開かないと保存した記録を消すことがある。ホーム画面に追加して開くか、ときどき「JSONで書き出す」で保存を</li>
+      <li>★は、同じパート・範囲・難易度で一番よかった回</li></ul></div>
     <ul class="recs" id="recList"></ul>
     <div class="actions">
       <button class="btn" id="btnExport" type="button">JSONで書き出す</button>
@@ -154,7 +177,7 @@ footer a{color:inherit}
     <div class="msg" id="recMsg"></div>
   </details>
 
-  <footer>個人の練習用ページです。<a href="mic-test.html">マイク動作テスト</a></footer>
+  <footer><a href="mic-test.html">マイク動作テスト</a></footer>
 </div>
 
 <script>
@@ -656,8 +679,8 @@ function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderRecs();
 function fmtDate(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 function renderRecs(){
   const a=loadRecs(),box=$("recList");box.innerHTML="";
-  $("recCount").textContent=a.length?`${a.length}件`:"";
-  if(!a.length){box.innerHTML='<li class="msg">まだ記録がありません。「マイクで歌う」で歌い終わると、ここに残ります。</li>';return}
+  $("recCount").textContent=a.length?`${a.length}件`:"";$("recCount").hidden=!a.length;
+  if(!a.length){box.innerHTML='<li class="msg">まだ記録がありません</li>';return}
   const best={};for(const x of a){const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;if(!best[k]||x.score>best[k])best[k]=x.score}
   for(const x of a.slice().reverse().slice(0,30)){
     const li=document.createElement("li");const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;
@@ -788,9 +811,11 @@ function renderProgressLink(){
   let meta={};try{meta=JSON.parse(store.get("kite-meta")||"{}")}catch(e){}
   const has=meta[part]||new Array(25).fill(true);let pass=0,exc=0,tot=0;
   for(let k=1;k<=25;k++){if(!has[k-1])continue;tot++;const a=(per[k]||[]).sort((p,q)=>q-p);if(a.length>=2&&a[1]>=70)pass++;if(a.length>=2&&a[1]>=85)exc++}
-  $("progSummary").textContent=`${PART_NAME[part]}・${MODES[mode].name}：合格 ${pass} / ${tot} ブロック（うちExcellent ${exc}）`;
+  $("progSummary").textContent=`${PART_NAME[part]}・${MODES[mode].name}　合格 ${pass} / ${tot}　★ ${exc}`;
 }
 renderProgressLink();
+document.addEventListener("click",e=>{const b=e.target.closest(".help");if(!b)return;e.preventDefault();
+  const t=document.getElementById(b.dataset.help);if(!t)return;t.hidden=!t.hidden;b.setAttribute("aria-expanded",t.hidden?"false":"true")});
 fillBars();renderRecs();resize();requestAnimationFrame(frame);
 })();
 </script>

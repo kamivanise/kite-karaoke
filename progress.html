@@ -59,13 +59,26 @@ th{color:var(--muted);font-weight:400;font-size:.78rem}
 .tablewrap{overflow-x:auto}
 .st-exc{color:var(--exc-ink)} .st-good{color:var(--good-ink)} .st-warn{color:var(--warn-ink)} .st-crit{color:var(--crit-ink)}
 details summary{cursor:pointer;font-weight:700}
+.titlerow{display:flex;align-items:center;gap:10px}
+.sumline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sumline b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.help{flex:none;width:23px;height:23px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .8rem/1 var(--body);cursor:pointer}
+.help[aria-expanded="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.helptext{color:var(--muted);font-size:.84rem;line-height:1.75;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.panel .helptext{background:var(--bg)}
+.helptext ul{margin:0;padding-left:1.2em}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="index.html">← カラオケに戻る</a>
-  <h1>カイト<span>・</span>習熟度マップ</h1>
-  <div class="msg">4小節を1ブロック（全25ブロック）として、ブロックごとに<strong>2番目に良かった点数</strong>を習熟度とします。まぐれの1回ではなく、2回以上その点数を取れたかで見ます。記録はこの端末の中だけにあります。</div>
+  <a class="back" href="index.html">← 戻る</a>
+  <div class="titlerow"><h1>カイト<span>・</span>習熟度マップ</h1><button type="button" class="help" data-help="hMap" aria-expanded="false" aria-label="説明を見る">?</button></div>
+  <div class="helptext" id="hMap" hidden><ul>
+    <li>1〜100小節を4小節ずつ、25ブロックに分けている</li>
+    <li>習熟度は、ブロックごとの<strong>2番目に良かった点数</strong>。まぐれの1回ではなく、2回以上取れた点数で見る</li>
+    <li>そのブロックの4小節がまるごと範囲に入っていて、最後まで歌った回だけを数える</li>
+    <li>難易度ごとに別々に記録する</li>
+    <li>記録はこの端末の中だけにある</li></ul></div>
 
   <div class="row">
     <div class="group"><span class="label">パート</span>
@@ -83,42 +96,45 @@ details summary{cursor:pointer;font-weight:700}
   </div>
 
   <div class="panel">
+    <div class="sumline"><b id="nPass"></b><span class="msg" id="nUntried"></span></div>
     <div class="tiles">
-      <div class="tile t-exc"><span class="label">★ Excellent（85点以上）</span><b id="nExc">0</b><small id="nTotal"></small></div>
-      <div class="tile t-good"><span class="label">✓ 合格（70〜84点）</span><b id="nGood">0</b><small id="nPass"></small></div>
-      <div class="tile t-warn"><span class="label">○ Good（50〜69点）</span><b id="nWarn">0</b><small>あと少し</small></div>
-      <div class="tile t-crit"><span class="label">! 要練習（49点以下）</span><b id="nCrit">0</b><small id="nUntried"></small></div>
+      <div class="tile t-exc"><span class="label">★ Excellent</span><b id="nExc">0</b></div>
+      <div class="tile t-good"><span class="label">✓ 合格</span><b id="nGood">0</b></div>
+      <div class="tile t-warn"><span class="label">○ Good</span><b id="nWarn">0</b></div>
+      <div class="tile t-crit"><span class="label">! 要練習</span><b id="nCrit">0</b></div>
     </div>
   </div>
 
   <div class="panel">
-    <h2 id="chartTitle">ブロック別の習熟度</h2>
+    <div class="titlerow"><h2 id="chartTitle">ブロック別の習熟度</h2><button type="button" class="help" data-help="hChart" aria-expanded="false" aria-label="説明を見る">?</button></div>
+    <div class="helptext" id="hChart" hidden><ul>
+      <li>棒をタップすると、小節・最高点・回数が出る</li>
+      <li>灰色の丸は1回だけ歌ったブロック。もう1回で棒になる</li>
+      <li>点線は下から Good 50・合格 70・Excellent 85</li></ul></div>
     <div class="legend">
-      <span><i style="background:var(--exc)"></i>★ Excellent 85点以上</span>
-      <span><i style="background:var(--good)"></i>✓ 合格 70〜84点</span>
-      <span><i style="background:var(--warn)"></i>○ Good 50〜69点</span>
-      <span><i style="background:var(--crit)"></i>! 要練習 49点以下</span>
-      <span><i style="background:var(--none)"></i>1回だけ（もう1回で確定）</span>
+      <span><i style="background:var(--exc)"></i>★ 85+</span>
+      <span><i style="background:var(--good)"></i>✓ 70+</span>
+      <span><i style="background:var(--warn)"></i>○ 50+</span>
+      <span><i style="background:var(--crit)"></i>! 〜49</span>
+      <span><i style="background:var(--none)"></i>1回だけ</span>
       <span><i style="background:var(--rest);border:1px solid var(--line)"></i>休み</span>
     </div>
     <div class="chartbox" id="chartbox"><svg id="chart" viewBox="0 0 760 300" role="img" aria-label="ブロック別の習熟度"></svg><div class="tip" id="tip" hidden></div></div>
-    <div class="msg">棒をタップすると、そのブロックの小節・最高点・回数が出ます。点数は「範囲にそのブロックの4小節がまるごと入っていて、最後まで歌った回」だけで計算します。</div>
   </div>
 
   <div class="panel">
-    <h2>次に練習するとよいブロック</h2>
+    <h2>弱点</h2>
     <div class="weak" id="weak"></div>
   </div>
 
   <details class="panel">
-    <summary>ブロック別の数値（表）</summary>
+    <summary>数値で見る</summary>
     <div class="tablewrap"><table><thead><tr><th>ブロック</th><th>小節</th><th>習熟度（2番目）</th><th>最高</th><th>回数</th><th>判定</th></tr></thead><tbody id="tbl"></tbody></table></div>
   </details>
 
   <details class="panel" open>
-    <summary>歌った記録（このパート・難易度）</summary>
-    <div class="msg">合計点は、その回に選んだ小節範囲全体の点数です。</div>
-    <div class="tablewrap"><table><thead><tr><th>日時</th><th>範囲</th><th>合計点</th><th>ブロック別</th></tr></thead><tbody id="hist"></tbody></table></div>
+    <summary>履歴</summary>
+    <div class="tablewrap"><table><thead><tr><th>日時</th><th>範囲</th><th>合計</th><th>ブロック別</th></tr></thead><tbody id="hist"></tbody></table></div>
   </details>
 </div>
 
@@ -153,13 +169,13 @@ function render(){
   let e=0,g=0,w=0,c=0,un=0,tot=0;
   for(const b of blocks){if(b.rest)continue;tot++;if(b.second==null){un++;continue}const s=status(b.second);if(s==="exc")e++;else if(s==="good")g++;else if(s==="warn")w++;else c++}
   $("nExc").textContent=e;$("nGood").textContent=g;$("nPass").textContent=`合格以上 ${e+g} / ${tot}`;$("nWarn").textContent=w;$("nCrit").textContent=c;
-  $("nTotal").textContent=`歌うブロック ${tot} 個のうち`;$("nUntried").textContent=un?`未確定 ${un} 個`:"";
+  $("nUntried").textContent=un?`未確定 ${un}`:"";
   drawChart(blocks);
   // weak spots: lowest confirmed first, then single-attempt, then untried
   const cand=blocks.filter(b=>!b.rest&&!(b.second!=null&&b.second>=70));
   cand.sort((a,b)=>{const ka=a.second!=null?0:a.n?1:2,kb=b.second!=null?0:b.n?1:2;if(ka!==kb)return ka-kb;return (a.second??a.best??0)-(b.second??b.best??0)});
   const wk=$("weak");wk.innerHTML="";
-  if(!cand.length){wk.innerHTML='<span class="msg">全ブロック合格です。Excellent（85点）を目指すか、次の難易度に挑戦してみましょう。</span>'}
+  if(!cand.length){wk.innerHTML='<span class="msg">全ブロック合格</span>'}
   for(const b of cand.slice(0,6)){const sp=document.createElement("span");sp.className="chip";
     const txt=b.second!=null?`${b.second}点`:b.n?`1回だけ（${b.best}点）`:"未挑戦";
     sp.innerHTML=`ブロック${b.i+1}（${b.i*4+1}〜${b.i*4+4}小節） <b></b>`;sp.querySelector("b").textContent=txt;wk.appendChild(sp)}
@@ -169,7 +185,7 @@ function render(){
     tr.innerHTML=`<td>${b.i+1}</td><td>${b.i*4+1}〜${b.i*4+4}</td><td>${b.rest?"—":b.second??"—"}</td><td>${b.rest?"—":b.best??"—"}</td><td>${b.rest?"—":b.n}</td><td class="${s?"st-"+s:""}">${b.rest?"休み":s?ST[s].icon+" "+ST[s].name:b.n?"1回だけ":"未挑戦"}</td>`;tb.appendChild(tr)}
   // history
   const hs=$("hist");hs.innerHTML="";
-  if(!list.length){hs.innerHTML='<tr><td colspan="4" class="msg">このパート・難易度の記録はまだありません。</td></tr>'}
+  if(!list.length){hs.innerHTML='<tr><td colspan="4" class="msg">まだ記録がありません</td></tr>'}
   for(const x of list.slice().reverse().slice(0,50)){const tr=document.createElement("tr");
     const bl=x.blocks?Object.entries(x.blocks).map(([k,v])=>`B${k}:${v}`).join(" "):"";
     tr.innerHTML=`<td>${fmt(x.at)}</td><td>${x.from}〜${x.to}小節${x.finished?"":"（途中）"}</td><td class="st-${status(x.score)}">${x.score}点</td><td></td>`;
@@ -199,7 +215,7 @@ function drawChart(blocks){
     if(b.i%2===0||true)h+=`<text x="${cx}" y="${H-B+15}" text-anchor="middle" font-size="10" fill="${col.muted}">${b.i+1}</text>`;
   });
   h+=`<line x1="${L}" x2="${W-R}" y1="${T+ph}" y2="${T+ph}" stroke="${col.axis}"/>`;
-  h+=`<text x="${L+pw/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${col.muted}">ブロック（1 = 1〜4小節、25 = 97〜100小節）</text>`;
+  h+=`<text x="${L+pw/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${col.muted}">ブロック</text>`;
   svg.innerHTML=h;
   const tip=$("tip"),box=$("chartbox");
   svg.querySelectorAll(".hit").forEach(r=>{
@@ -213,6 +229,7 @@ function drawChart(blocks){
 function tabs(id,set){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);render()})}
 tabs("partTabs",v=>{part=v});tabs("modeTabs",v=>{mode=v});
 window.addEventListener("storage",render);
+document.addEventListener("click",e=>{const b=e.target.closest(".help");if(!b)return;const t=document.getElementById(b.dataset.help);if(!t)return;t.hidden=!t.hidden;b.setAttribute("aria-expanded",t.hidden?"false":"true")});
 render();
 })();
 </script>
