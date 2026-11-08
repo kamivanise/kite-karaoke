@@ -46,6 +46,10 @@ canvas{display:block;width:100%;height:260px}
 .lyric{font-family:var(--display);font-size:1.6rem;min-height:2.6rem;line-height:1.5;text-align:center;letter-spacing:.06em;color:var(--muted);word-break:break-all}
 .lyric .done{color:var(--accent)} .lyric .now{color:var(--fg)}
 .lyric small{font-family:var(--body);font-size:.9rem}
+.lyric ruby{ruby-position:over;margin:0 .12em}
+.lyric rt{font-family:var(--body);font-size:.55em;font-weight:700;letter-spacing:0;color:var(--muted)}
+.lyric .done rt{color:var(--accent)} .lyric .now rt{color:var(--fg)}
+.lyric .sol{font-size:.8em;margin:0 .2em}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
 .btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -229,6 +233,9 @@ function yin(buf,sr,g){
   return sr/(den?tau+(a-e)/(2*den):tau);
 }
 const hz2midi=f=>69+12*Math.log2(f/440);
+const SOL=["ド","レ♭","レ","ミ♭","ミ","ファ","ソ♭","ソ","ラ♭","ラ","シ♭","シ"];
+const solName=m=>SOL[((Math.round(m)%12)+12)%12];
+const solLong=m=>(m<60?"低い":m>=72?"高い":"")+solName(m);
 
 // ---- audio ----
 let ac=null;
@@ -364,7 +371,7 @@ function draw(beat){
   const ppb=Math.max(48,Math.min(80,W/9)),px=W*0.22,x=b=>px+(b-beat)*ppb;
   c.strokeStyle=css("--grid");c.lineWidth=1;
   for(let b=Math.floor(beat-px/ppb);b<beat+(W-px)/ppb+1;b++){if(b<0||b%4)continue;c.beginPath();c.moveTo(x(b)+.5,0);c.lineTo(x(b)+.5,H);c.stroke()}
-  const noteCol=css("--note"),hitCol=css("--note-hit"),ink=css("--fg");
+  const noteCol=css("--note"),hitCol=css("--note-hit"),ink=css("--fg"),solCol=css("--muted");
   c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   for(const n of song.notes){
     const x0=x(n.start),x1=x(n.start+n.dur);if(x1<-10||x0>W+10)continue;
@@ -372,7 +379,16 @@ function draw(beat){
     c.fillStyle=noteCol;c.globalAlpha=0.35;rr(c,x0+1,yy,x1-x0-2,h,h/2);c.fill();c.globalAlpha=1;
     if(n.frames){const r=n.hit/n.frames;c.fillStyle=hitCol;c.globalAlpha=0.35+0.65*r;rr(c,x0+1,yy,x1-x0-2,h,h/2);c.fill();c.globalAlpha=1}
     c.fillStyle=ink;if(n.lyric&&n.lyric!=="ー")c.fillText(n.lyric,x0+2,yy-2);
+    const k=song.notes.indexOf(n),off=n.dur<0.5&&k%2?12:0;
+    c.fillStyle=solCol;c.font=`700 11px ${css("--body")}`;c.textBaseline="top";
+    c.fillText(solName(n.midi),x0+2,yy+h+2+off);
+    c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   }
+  // current target note badge
+  const cur=noteAt(beat);
+  if(cur){c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,8,8,104,34,8);c.fill();c.globalAlpha=1;
+    c.fillStyle=ink;c.font=`11px ${css("--body")}`;c.textBaseline="top";c.fillText("いまの音",16,11);
+    c.font=`700 15px ${css("--body")}`;c.fillText(solLong(cur.midi),16,23);c.textBaseline="bottom"}
   const vc=css("--voice"),vok=css("--voice-ok");
   for(const p of trail){if(p.midi==null)continue;const xx=x(p.beat);if(xx<-4||xx>W)continue;
     const yy=y(Math.max(lo-1,Math.min(hi+1,p.midi)));c.fillStyle=p.ok?vok:vc;c.globalAlpha=p.ok?1:.55;c.beginPath();c.arc(xx,yy,p.ok?3.4:2.6,0,7);c.fill()}
@@ -389,12 +405,10 @@ function kite(c,x,y,ok){c.save();c.translate(x,y);c.fillStyle=ok?css("--accent")
 let lastLy=null;
 function lyricLine(beat){
   const bar=Math.max(0,Math.floor(beat/8))*8;
-  const ns=song.notes.filter(n=>n.start>=bar&&n.start<bar+8&&n.lyric);
-  let html=ns.map(n=>{const cls=beat>=n.start+n.dur?"done":beat>=n.start?"now":"";return `<span class="${cls}">${esc(n.lyric)}</span>`}).join("");
-  if(!ns.length){
-    if(!song.notes.length)html="<small>この区間は休みです</small>";
-    else if(!lyrics[part].trim())html="<small>歌詞は「歌詞を入れる」から追加できます</small>";
-  }
+  const ns=song.notes.filter(n=>n.start>=bar&&n.start<bar+8);
+  let html=ns.map(n=>{const cls=beat>=n.start+n.dur?"done":beat>=n.start?"now":"";
+    return n.lyric?`<ruby class="${cls}">${esc(n.lyric)}<rt>${solName(n.midi)}</rt></ruby>`:`<span class="sol ${cls}">${solName(n.midi)}</span>`}).join("");
+  if(!ns.length)html=song.notes.length&&beat>=song.total?"":"<small>この区間は休みです</small>";
   if(html!==lastLy){$("lyric").innerHTML=html;lastLy=html}
 }
 function esc(s){return s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
