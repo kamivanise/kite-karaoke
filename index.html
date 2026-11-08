@@ -40,6 +40,7 @@ h1 span{color:var(--accent)}
 .seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:.9rem;padding:6px 14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rangeSel{display:flex;align-items:center;gap:6px}
 select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
 canvas{display:block;width:100%;height:260px}
@@ -90,6 +91,8 @@ footer a{color:inherit}
       </div></div>
     <div class="group"><label class="label" for="tempo">テンポ</label>
       <select id="tempo"><option value="1">100%</option><option value="0.85">85%</option><option value="0.7">70%</option></select></div>
+    <div class="group"><span class="label">練習する小節</span>
+      <div class="rangeSel"><select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select></div></div>
     <div class="group"><label class="label" for="guide">お手本の音</label>
       <select id="guide"><option value="1">あり</option><option value="0">なし</option></select></div>
     <div class="group"><label class="label" for="oct">オクターブ違い</label>
@@ -271,9 +274,10 @@ function tone(midi,t0,dur,vol,type){
   g.gain.setValueAtTime(vol,Math.max(t0+0.03,t0+dur-0.06));g.gain.linearRampToValueAtTime(0,t0+dur);
   o.connect(g).connect(a.destination);o.start(t0);o.stop(t0+dur+0.05);scheduled.push(o);
 }
-function scheduleGuide(t0,spb){
+function scheduleGuide(t0,spb,b0,b1){
   if($("guide").value!=="1")return;
-  for(const n of song.notes)tone(n.midi,t0+n.start*spb,Math.max(0.08,n.dur*spb*0.95),0.2);
+  for(const n of song.notes){if(n.start<b0||n.start>=b1)continue;
+    tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.2)}
 }
 function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"square")}
 
@@ -281,9 +285,18 @@ function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"squa
 let run=null,trail=[],frames=0,hits=0;
 function spb(){return 60/(BPM*parseFloat($("tempo").value))}
 function tol(){return mode==="easy"?100:50}
+function nBars(){return Math.max(1,Math.ceil(song.total/4))}
+function rng(){let a=+$("barFrom").value||1,b=+$("barTo").value||nBars();if(b<a)[a,b]=[b,a];return{a,b,b0:(a-1)*4,b1:b*4}}
+function fillBars(){
+  const n=nBars();let f=+(store.get("kite-from")||1),t=+(store.get("kite-to")||n);
+  f=Math.min(Math.max(1,f),n);t=Math.min(Math.max(1,t),n);
+  for(const [id,v] of [["barFrom",f],["barTo",t]]){const el=$(id);el.innerHTML="";
+    for(let i=1;i<=n;i++){const o=document.createElement("option");o.value=i;o.textContent=i+"小節";el.appendChild(o)}el.value=v}
+}
 function resetScore(){frames=0;hits=0;trail=[];for(const n of song.notes){n.frames=0;n.hit=0}}
 function noteAt(beat){for(const n of song.notes)if(beat>=n.start&&beat<n.start+n.dur)return n;return null}
 function judge(beat,midi){
+  if(run&&(beat<run.b0||beat>=run.b1))return;
   const n=noteAt(beat);let shown=midi,ok=false;
   if(midi!=null&&n&&$("oct").value==="1")shown=midi-12*Math.round((midi-n.midi)/12);
   if(n){n.frames++;frames++;if(shown!=null&&Math.abs(shown-n.midi)*100<=tol()){ok=true;n.hit++;hits++}}
@@ -298,15 +311,15 @@ async function startMic(){
   catch(e){msg("マイクが使えませんでした（"+e.name+"）。Safariの設定でマイクを許可するか、下の「録音ファイルで採点する」を使ってください。",true);return}
   await a.resume();
   const src=a.createMediaStreamSource(stream),an=a.createAnalyser();an.fftSize=2048;src.connect(an);
-  const s=spb(),start0=a.currentTime+0.3+4*s;
-  clicks(start0-4*s,s);scheduleGuide(start0,s);resetScore();
-  run={kind:"mic",start0,spb:s,analyser:an,stream,buf:new Float32Array(2048),last:0};
+  const s=spb(),start0=a.currentTime+0.3+4*s,r=rng();
+  clicks(start0-4*s,s);scheduleGuide(start0,s,r.b0,r.b1);resetScore();
+  run={kind:"mic",start0,spb:s,...r,analyser:an,stream,buf:new Float32Array(2048),last:0};
   msg("カウントのあとに歌ってください。");uiRunning(true);
 }
 function startGuideOnly(){
-  stopAll();const a=AC(),s=spb(),start0=a.currentTime+0.3+4*s;
-  clicks(start0-4*s,s);scheduleGuide(start0,s);resetScore();
-  run={kind:"guide",start0,spb:s};msg("お手本を再生中です。");uiRunning(true);
+  stopAll();const a=AC(),s=spb(),start0=a.currentTime+0.3+4*s,r=rng();
+  clicks(start0-4*s,s);scheduleGuide(start0,s,r.b0,r.b1);resetScore();
+  run={kind:"guide",start0,spb:s,...r};msg("お手本を再生中です。");uiRunning(true);
 }
 
 let fileBuf=null,fileTrack=null;
@@ -330,8 +343,8 @@ function startFile(){
   if(!fileBuf)return;stopAll();
   const a=AC(),s=spb(),off=parseFloat($("offset").value),t0=a.currentTime+0.2;
   const src=a.createBufferSource();src.buffer=fileBuf;src.connect(a.destination);src.start(t0);
-  scheduleGuide(t0+off,s);resetScore();
-  run={kind:"file",start0:t0+off,recStart:t0,spb:s,src,lastIdx:-1};
+  const r=rng();scheduleGuide(t0+off,s,r.b0,r.b1);resetScore();
+  run={kind:"file",start0:t0+off,recStart:t0,spb:s,...r,src,lastIdx:-1};
   msg("録音を再生しながら採点しています。テンポは録音したときと同じ設定にしてください。");uiRunning(true);
 }
 
@@ -346,10 +359,11 @@ function stopAll(finished){
 function uiRunning(on){$("btnStop").disabled=!on;$("btnMic").disabled=on;$("btnGuide").disabled=on;$("btnFile").disabled=on||!fileTrack}
 function showScore(finished){
   if(!frames){$("scoreNum").textContent="--";$("scoreLbl").textContent="判定できる声がありませんでした";
-    msg("声が拾えていません。マイク感度を右に上げてみてください。",true);return}
+    msg(song.notes.some(n=>n.start>=rng().b0&&n.start<rng().b1)?"声が拾えていません。マイク感度を右に上げてみてください。":"選んだ範囲はアルトが休みの小節だけです。範囲を変えてください。",true);return}
   const p=Math.round(hits/frames*100);
   $("scoreNum").textContent=p+"%";
-  $("scoreLbl").textContent=(mode==="easy"?"やさしい":"ふつう")+"判定・"+(finished?"最後まで":"途中まで");
+  const r=rng();
+  $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+(mode==="easy"?"やさしい":"ふつう")+"判定・"+(finished?"最後まで":"途中まで");
   const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${Math.floor(n.start/4)+1}小節目`)});
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
 }
@@ -367,7 +381,7 @@ function range(){
 function frame(){
   const a=ac;let t=-1;
   if(run&&a){
-    t=a.currentTime-run.start0;const beat=t/run.spb;
+    t=a.currentTime-run.start0;const beat=run.b0+t/run.spb;
     if(run.kind==="mic"&&a.currentTime-run.last>0.03){
       run.last=a.currentTime;run.analyser.getFloatTimeDomainData(run.buf);
       const half=down2(run.buf);$("lvl").style.width=(meterScale(rmsOf(half))*100)+"%";
@@ -376,13 +390,13 @@ function frame(){
     if(run.kind==="file"&&t>=0){
       const idx=Math.floor((a.currentTime-run.recStart)/0.02);
       for(let i=Math.max(run.lastIdx+1,0);i<=idx&&i<fileTrack.length;i++){
-        const bt=(i*0.02-(run.start0-run.recStart))/run.spb;if(bt>=0)judge(bt,fileTrack[i]);
+        const dt=i*0.02-(run.start0-run.recStart);if(dt>=0)judge(run.b0+dt/run.spb,fileTrack[i]);
       }
       run.lastIdx=idx;
     }
-    if(beat>song.total+1)stopAll(true);
+    if(beat>run.b1+0.5)stopAll(true);
   }
-  draw(run?t/run.spb:(trail.length?trail[trail.length-1].beat:-0.5));
+  draw(run?run.b0+t/run.spb:(trail.length?trail[trail.length-1].beat:rng().b0-0.5));
   requestAnimationFrame(frame);
 }
 function draw(beat){
@@ -394,6 +408,8 @@ function draw(beat){
   const ppb=Math.max(48,Math.min(80,W/9)),px=W*0.22,x=b=>px+(b-beat)*ppb;
   c.strokeStyle=css("--grid");c.lineWidth=1;
   for(let b=Math.floor(beat-px/ppb);b<beat+(W-px)/ppb+1;b++){if(b<0||b%4)continue;c.beginPath();c.moveTo(x(b)+.5,0);c.lineTo(x(b)+.5,H);c.stroke()}
+  {const r=run||rng(),xa=x(r.b0),xb=x(r.b1);c.fillStyle=css("--bg");c.globalAlpha=.55;
+    if(xa>0)c.fillRect(0,0,xa,H);if(xb<W)c.fillRect(xb,0,W-xb,H);c.globalAlpha=1}
   const noteCol=css("--note"),hitCol=css("--note-hit"),ink=css("--fg"),solCol=css("--muted");
   c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   for(const n of song.notes){
@@ -419,7 +435,7 @@ function draw(beat){
   c.strokeStyle=css("--playhead");c.lineWidth=2;c.beginPath();c.moveTo(px,0);c.lineTo(px,H);c.stroke();
   const last=trail.length?trail[trail.length-1]:null;
   if(run&&last&&last.midi!=null&&beat-last.beat<0.3)kite(c,px,y(Math.max(lo,Math.min(hi,last.midi))),last.ok);
-  if(run&&beat<0){c.fillStyle=ink;c.font=`48px ${css("--display")}`;c.textAlign="center";c.textBaseline="middle";c.fillText(String(Math.ceil(-beat)),W/2,H/2);c.textAlign="left"}
+  if(run&&beat<run.b0){c.fillStyle=ink;c.font=`48px ${css("--display")}`;c.textAlign="center";c.textBaseline="middle";c.fillText(String(Math.ceil(run.b0-beat)),W/2,H/2);c.textAlign="left"}
   lyricLine(beat);
 }
 function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
@@ -439,7 +455,10 @@ function esc(s){return s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt
 // ---- controls ----
 function seg(id,cb){const el=$(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v)})}
-function reload(){stopAll();song=build(part);resetScore();lastLy=null}
+function reload(){stopAll();song=build(part);fillBars();resetScore();lastLy=null}
+for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll();
+  store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
+  trail=[];lastLy=null;$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 seg("modeSeg",v=>{mode=v});
 
 const lyPart="A";
@@ -463,7 +482,7 @@ $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
 $("btnStop").addEventListener("click",()=>stopAll(false));
 $("btnFile").addEventListener("click",startFile);
-resize();requestAnimationFrame(frame);
+fillBars();resize();requestAnimationFrame(frame);
 })();
 </script>
 </body>
