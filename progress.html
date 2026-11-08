@@ -66,7 +66,14 @@ details summary{cursor:pointer;font-weight:700}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .panel h2{display:flex;align-items:center;gap:7px}
 .panel h2 .help{margin-left:auto}
-.tile .of{color:var(--muted);font-size:.8rem}
+.gauge{display:flex;gap:2px;height:30px;border-radius:8px;overflow:hidden;background:var(--rest)}
+.gauge i{display:flex;align-items:center;justify-content:center;min-width:0;font-style:normal;font-size:.8rem;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.gauge .g-warn{color:#0b0b0b}.gauge .g-none{color:var(--fg)}.gauge .g-rest{color:var(--muted)}
+.g-exc{background:var(--exc)}.g-good{background:var(--good)}.g-warn{background:var(--warn)}.g-crit{background:var(--crit)}.g-none{background:var(--none)}.g-rest{background:var(--rest)}
+.glegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.84rem;color:var(--muted)}
+.glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.glegend .g-rest{border:1px solid var(--line)}
+.glegend b{color:var(--fg);font-variant-numeric:tabular-nums}
 .legend .ring{background:none;border:2px solid var(--muted);border-radius:50%}
 .help{flex:none;width:23px;height:23px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .8rem/1 var(--body);cursor:pointer}
 .help[aria-expanded="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
@@ -93,16 +100,13 @@ details summary{cursor:pointer;font-weight:700}
   <div class="panel">
     <h2>いまの進み<button type="button" class="help" data-help="hSum" aria-expanded="false" aria-label="説明を見る">?</button></h2>
     <div class="helptext" id="hSum" hidden><ul>
-      <li>1〜100小節を4小節ずつ、25ブロックに分けて数えている（休みのブロックは数えない）</li>
+      <li>1〜100小節を4小節ずつ、25ブロックに分けて数えている</li>
       <li>ブロックの点は、<b>2番目に良かった点</b>。まぐれの1回ではなく、2回以上取れた点で見る</li>
-      <li>★ Excellent 85点以上／✓ 合格 70点以上／○ Good 50点以上／! 要練習 それ未満</li>
+      <li>★ 達人 85点以上／✓ 合格 70点以上／○ あと少し 50点以上／! 要練習 それ未満</li>
+      <li>棒の全体が25ブロック。灰色はまだ点が決まっていないブロック、薄い色は休みのブロック</li>
       <li>難易度ごとに別々に数える。記録はこの端末の中だけにある</li></ul></div>
-    <div class="tiles">
-      <div class="tile t-exc"><span class="label">★ Excellent</span><span><b id="nExc">0</b> <small class="of"></small></span></div>
-      <div class="tile t-good"><span class="label">✓ 合格</span><span><b id="nGood">0</b> <small class="of"></small></span></div>
-      <div class="tile t-warn"><span class="label">○ Good</span><span><b id="nWarn">0</b> <small class="of"></small></span></div>
-      <div class="tile t-crit"><span class="label">! 要練習</span><span><b id="nCrit">0</b> <small class="of"></small></span></div>
-    </div>
+    <div class="gauge" id="gauge" role="img" aria-label="25ブロックの内訳"></div>
+    <div class="glegend" id="glegend"></div>
   </div>
 
   <div class="panel">
@@ -110,7 +114,7 @@ details summary{cursor:pointer;font-weight:700}
     <div class="helptext" id="hChart" hidden><ul>
       <li>棒を押すと、小節・最高点・回数が出る</li>
       <li>灰色の丸は1回だけ歌ったブロック。もう1回歌うと棒になる</li>
-      <li>点線は下から Good 50・合格 70・Excellent 85</li>
+      <li>点線は下から あと少し 50・合格 70・達人 85</li>
       <li>選んだ範囲にそのブロックの4小節がまるごと入っていて、最後まで歌った回だけを数える</li></ul></div>
     <div class="chartbox" id="chartbox"><svg id="chart" viewBox="0 0 760 300" role="img" aria-label="ブロックごとの点"></svg><div class="tip" id="tip" hidden></div></div>
     <div class="legend">
@@ -151,7 +155,7 @@ function recs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return A
 function meta(){try{return JSON.parse(store.get("kite-meta")||"{}")}catch(e){return{}}}
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function status(v){return v>=85?"exc":v>=70?"good":v>=50?"warn":"crit"}
-const ST={exc:{icon:"★",name:"Excellent"},good:{icon:"✓",name:"合格"},warn:{icon:"○",name:"Good"},crit:{icon:"!",name:"要練習"}};
+const ST={exc:{icon:"★",name:"達人"},good:{icon:"✓",name:"合格"},warn:{icon:"○",name:"あと少し"},crit:{icon:"!",name:"要練習"}};
 function fmt(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 
 function compute(){
@@ -169,7 +173,12 @@ function render(){
   const {list,blocks}=compute();
   let e=0,g=0,w=0,c=0,un=0,tot=0;
   for(const b of blocks){if(b.rest)continue;tot++;if(b.second==null){un++;continue}const s=status(b.second);if(s==="exc")e++;else if(s==="good")g++;else if(s==="warn")w++;else c++}
-  $("nExc").textContent=e;$("nGood").textContent=g;document.querySelectorAll(".tile .of").forEach(x=>x.textContent=`/ ${tot}`);$("nWarn").textContent=w;$("nCrit").textContent=c;
+  const rest=25-tot,segs=[["exc",e],["good",g],["warn",w],["crit",c],["none",un],["rest",rest]];
+  const gauge=$("gauge"),gl=$("glegend");gauge.innerHTML="";gl.innerHTML="";
+  for(const [k,n] of segs){if(!n)continue;const d=document.createElement("i");d.className="g-"+k;d.style.flexGrow=n;
+    d.title=`${k==="none"?"未確定":k==="rest"?"休み":ST[k].name} ${n}`;if(n>=2)d.textContent=n;gauge.appendChild(d)}
+  for(const [k,n] of segs){if(k==="rest"&&!n)continue;const s=document.createElement("span");
+    s.innerHTML=`<i class="g-${k}"></i>${k==="none"?"未確定":k==="rest"?"休み":ST[k].icon+" "+ST[k].name} <b>${n}</b>`;gl.appendChild(s)}
   
   drawChart(blocks);
   // weak spots: lowest confirmed first, then single-attempt, then untried
