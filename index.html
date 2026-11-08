@@ -7,7 +7,7 @@
 <title>カイト 合唱練習</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
 <style>
-/* Layout: one column practice console — controls, a sky-colored pitch stage, the lyric line, then the score. */
+/* Layout: one column practice console — controls, a sky-colored pitch stage, then the score. */
 :root{
   --bg:#f3f6fa; --surface:#ffffff; --fg:#17202c; --muted:#5d6b7c; --line:#d6dee8;
   --accent:#d8432f; --accent-ink:#ffffff; --tail:#f2b630;
@@ -47,13 +47,6 @@ canvas{display:block;width:100%;height:260px;touch-action:pan-y}
 .revbox{display:flex;align-items:center;gap:8px}
 .revbox input{flex:1;min-width:0}
 .revbtn{width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
-.lyric{font-family:var(--display);font-size:1.6rem;min-height:2.6rem;line-height:1.5;text-align:center;letter-spacing:.06em;color:var(--muted);word-break:break-all}
-.lyric .done{color:var(--accent)} .lyric .now{color:var(--fg)}
-.lyric small{font-family:var(--body);font-size:.9rem}
-.lyric ruby{ruby-position:over;margin:0 .12em}
-.lyric rt{font-family:var(--body);font-size:.55em;font-weight:700;letter-spacing:0;color:var(--muted)}
-.lyric .done rt{color:var(--accent)} .lyric .now rt{color:var(--fg)}
-.lyric .sol{font-size:.8em;margin:0 .2em}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
 .btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -171,7 +164,6 @@ footer a{color:inherit}
     <li>歌い終わると、バーを指で左右に動かして見返せる（下のつまみや ◀ ▶ でも動く）</li>
     <li>音符の上の数字は、その音の平均のズレ（半音単位。＋は高い、−は低い）。判定の幅を超えたものは色が変わる</li>
     <li>次に歌い始めると消える</li></ul></div>
-  <div class="lyric" id="lyric" aria-live="polite"></div>
 
   <div class="actions">
     <button class="btn primary" id="btnMic" type="button">マイクで歌う</button>
@@ -814,13 +806,8 @@ function draw(beat){
       c.fillText((d>0?"+":d<0?"−":"±")+Math.abs(d).toFixed(1),x0+2,yy-2-off);c.textBaseline="top"}
     c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   }
-  // current target note badge
-  const cur=noteAt(beat);
   if(!run&&viewBeat!=null){const bi=barOf(beat+1e-6)+1;c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,W-92,8,84,26,8);c.fill();c.globalAlpha=1;
     c.fillStyle=ink;c.font=`700 12px ${css("--body")}`;c.textBaseline="middle";c.textAlign="right";c.fillText(`${bi}小節`,W-16,21);c.textAlign="left";c.textBaseline="bottom"}
-  if(cur){c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,8,8,104,34,8);c.fill();c.globalAlpha=1;
-    c.fillStyle=ink;c.font=`11px ${css("--body")}`;c.textBaseline="top";c.fillText("いまの音",16,11);
-    c.font=`700 15px ${css("--body")}`;c.fillText(solLong(cur),16,23);c.textBaseline="bottom"}
   const vc=css("--voice"),vok=css("--voice-ok");
   for(const p of trail){if(p.midi==null)continue;const xx=x(p.beat);if(xx<-4||xx>W)continue;
     const yy=y(Math.max(lo-1,Math.min(hi+1,p.midi)));c.fillStyle=p.ok?vok:vc;c.globalAlpha=p.ok?1:.55;c.beginPath();c.arc(xx,yy,p.ok?3.4:2.6,0,7);c.fill()}
@@ -829,29 +816,19 @@ function draw(beat){
   const last=trail.length?trail[trail.length-1]:null;
   if(run&&last&&last.midi!=null&&beat-last.beat<0.3)kite(c,px,y(Math.max(lo,Math.min(hi,last.midi))),last.ok);
   if(run&&beat<run.b0){c.fillStyle=ink;c.font=`48px ${css("--display")}`;c.textAlign="center";c.textBaseline="middle";c.fillText(String(Math.ceil(run.b0-beat)),W/2,H/2);c.textAlign="left"}
-  lyricLine(beat);
 }
 function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
 function kite(c,x,y,ok){c.save();c.translate(x,y);c.fillStyle=ok?css("--accent"):css("--muted");c.beginPath();c.moveTo(0,-11);c.lineTo(8,0);c.lineTo(0,11);c.lineTo(-8,0);c.closePath();c.fill();
   c.strokeStyle=css("--tail");c.lineWidth=2;c.beginPath();c.moveTo(0,11);c.quadraticCurveTo(-8,20,-16,16);c.stroke();c.restore()}
-let lastLy=null;
-function lyricLine(beat){
-  const bi=barOf(Math.max(0,beat)),bs=bi-bi%2,bar=song.bars[bs]||0,barE=barEnd(Math.min(bs+1,song.bars.length-1));
-  const ns=song.notes.filter(n=>n.start>=bar&&n.start<barE);
-  let html=ns.map(n=>{const cls=beat>=n.start+n.dur?"done":beat>=n.start?"now":"";
-    return n.lyric?`<ruby class="${cls}">${esc(n.lyric)}<rt>${noteSol(n)}</rt></ruby>`:`<span class="sol ${cls}">${noteSol(n)}</span>`}).join("");
-  if(!ns.length)html=song.notes.length&&beat>=song.total?"":"<small>この区間は休みです</small>";
-  if(html!==lastLy){$("lyric").innerHTML=html;lastLy=html}
-}
 function esc(s){return s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
 
 // ---- controls ----
 function seg(id,cb){const el=$(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v)})}
-function reload(){stopAll();song=build(part);fillBars();resetScore();lastLy=null}
+function reload(){stopAll();song=build(part);fillBars();resetScore()}
 for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll();
   store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
-  trail=[];lastLy=null;$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
+  trail=[];$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 seg("modeSeg",v=>{mode=v;store.set("kite-mode",v);renderProgressLink();showNow()});
 function mark(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v?"true":"false"))}
 function showNow(){$("curPart").textContent=PART_NAME[part];$("curMode").textContent=MODES[mode].name}
