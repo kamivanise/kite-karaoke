@@ -60,8 +60,27 @@ canvas{display:block;width:100%;height:260px}
 .score b{font-family:var(--display);font-weight:400;font-size:2.6rem;font-variant-numeric:tabular-nums;line-height:1}
 .chip{font-size:.8rem;border-radius:999px;padding:2px 10px;border:1px solid var(--line);color:var(--muted)}
 .msg{font-size:.88rem;color:var(--muted)} .msg.warn{color:var(--warn)}
-.sens{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.sens input{width:150px}
+.topbar{display:flex;align-items:center;gap:10px}
+.topbar h1{flex:1;min-width:0}
+.now{display:flex;gap:0;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:700 .85rem var(--body);cursor:pointer;white-space:nowrap}
+.now span+span::before{content:"・";color:var(--muted)}
+.gear{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.15rem;line-height:1;cursor:pointer}
+.rangeRow{display:flex;align-items:center;gap:8px}
+.tabs{display:flex;gap:6px;background:var(--line);border-radius:999px;padding:4px}
+.tabs button{flex:1;border:none;background:none;border-radius:999px;font:inherit;font-size:.86rem;font-weight:700;color:var(--muted);padding:8px 4px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+dialog{border:none;padding:0;background:transparent;width:min(520px,calc(100% - 24px));max-height:calc(100% - 24px)}
+dialog::backdrop{background:rgba(10,16,24,.45)}
+.sheet{background:var(--bg);color:var(--fg);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:16px}
+.shead{display:flex;align-items:center}
+.shead h2{margin:0;font-size:1.1rem;flex:1}
+.close{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.2rem;line-height:1;cursor:pointer}
+.sheet section{display:flex;flex-direction:column;gap:8px}
+.sheet h3{margin:0;font-size:.9rem;display:flex;align-items:center;gap:7px}
+.sheet h3 .help{margin-left:auto}
+.sheet label{color:inherit}
+.sheet input[type=range]{width:100%}
+.sheet .meter{width:100%}
 .meter{width:120px;height:10px;border-radius:5px;background:var(--line);overflow:hidden;position:relative}
 .meter i{display:block;height:100%;width:0;background:var(--accent)}
 .meter b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg)}
@@ -89,48 +108,54 @@ footer a{color:inherit}
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>カイト<span>・</span>合唱練習</h1>
-    <div class="sub">混声三部合唱　♩=89　変ニ長調（♭5つ）</div>
-  </header>
-
-  <div class="row">
-    <div class="group"><span class="label">パート</span>
-      <div class="seg" id="partSeg">
-        <button type="button" data-v="S" aria-pressed="false">ソプラノ</button>
-        <button type="button" data-v="A" aria-pressed="true">アルト</button>
-        <button type="button" data-v="M" aria-pressed="false">男声</button>
-      </div></div>
-    <div class="group"><span class="label">判定 <button type="button" class="help" data-help="hMode" aria-expanded="false" aria-label="説明を見る">?</button></span>
-      <div class="seg" id="modeSeg">
-        <button type="button" data-v="easy" aria-pressed="true">やさしい</button>
-        <button type="button" data-v="normal" aria-pressed="false">ふつう</button>
-        <button type="button" data-v="hard" aria-pressed="false">むずかしい</button>
-      </div></div>
-    <div class="group"><span class="label">練習する小節</span>
-      <div class="rangeSel"><select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select></div></div>
-    <div class="group"><label class="label" for="guide">お手本の音</label>
-      <select id="guide"><option value="1">あり</option><option value="0">なし</option></select></div>
-    <div class="group"><span class="label"><label for="oct">オクターブ違い</label> <button type="button" class="help" data-help="hOct" aria-expanded="false" aria-label="説明を見る">?</button></span>
-      <select id="oct"><option value="0">ズレ扱い</option><option value="1">OKにする</option></select></div>
+  <div class="topbar">
+    <h1>カイト</h1>
+    <button type="button" class="now" id="btnNow" aria-haspopup="dialog"><span id="curPart"></span><span id="curMode"></span></button>
+    <button type="button" class="gear" id="btnGear" aria-haspopup="dialog" aria-label="設定">⚙</button>
   </div>
-  <div class="helptext" id="hMode" hidden><ul>
-    <li>やさしい：1音（全音）までのズレは正解</li>
-    <li>ふつう：半音までのズレは正解</li>
-    <li>むずかしい：半音の半分（50セント）まで</li>
-    <li>点数は、選んだ範囲で声の高さが合っていた時間の割合</li></ul></div>
-  <div class="helptext" id="hOct" hidden><ul>
-    <li>「OKにする」で、1オクターブ上や下で歌っても正解になる</li>
-    <li>男声パートを女性が歌うときなどに使う</li></ul></div>
 
-  <div class="sens">
-    <span class="label"><label for="sens">マイク感度</label> <button type="button" class="help" data-help="hSens" aria-expanded="false" aria-label="説明を見る">?</button></span>
-    <input type="range" id="sens" min="1" max="10" step="1" value="7">
-    <div class="meter" aria-hidden="true"><i id="lvl"></i><b id="thr"></b></div>
+  <div class="rangeRow">
+    <span class="label">小節</span>
+    <select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select>
   </div>
-  <div class="helptext" id="hSens" hidden><ul>
-    <li>右のメーターは声の大きさ。黒い線を超えた声だけを判定する</li>
-    <li>近づかないと反応しないときは右へ、周りの音を拾うときは左へ</li></ul></div>
+
+  <input type="hidden" id="guide" value="1"><input type="hidden" id="oct" value="0">
+  <dialog id="settings" aria-labelledby="setTitle">
+    <div class="sheet">
+      <div class="shead"><h2 id="setTitle">設定</h2><button type="button" class="close" id="btnClose" aria-label="閉じる">×</button></div>
+      <section><h3>パート</h3>
+        <div class="tabs" id="partSeg">
+          <button type="button" data-v="S">ソプラノ</button><button type="button" data-v="A">アルト</button><button type="button" data-v="M">男声</button>
+        </div></section>
+      <section><h3>判定<button type="button" class="help" data-help="hMode" aria-expanded="false" aria-label="説明を見る">?</button></h3>
+        <div class="helptext" id="hMode" hidden><ul>
+          <li>やさしい：1音（全音）までのズレは正解</li>
+          <li>ふつう：半音までのズレは正解</li>
+          <li>むずかしい：半音の半分（50セント）まで</li>
+          <li>点数は、選んだ範囲で声の高さが合っていた時間の割合</li></ul></div>
+        <div class="tabs" id="modeSeg">
+          <button type="button" data-v="easy">やさしい</button><button type="button" data-v="normal">ふつう</button><button type="button" data-v="hard">むずかしい</button>
+        </div></section>
+      <section><h3>お手本の音</h3>
+        <div class="tabs" id="guideSeg">
+          <button type="button" data-v="1">あり</button><button type="button" data-v="0">なし</button>
+        </div></section>
+      <section><h3>オクターブ違い<button type="button" class="help" data-help="hOct" aria-expanded="false" aria-label="説明を見る">?</button></h3>
+        <div class="helptext" id="hOct" hidden><ul>
+          <li>「正解にする」で、1オクターブ上や下で歌っても正解になる</li>
+          <li>男声パートを女性が歌うときなどに使う</li></ul></div>
+        <div class="tabs" id="octSeg">
+          <button type="button" data-v="0">ズレ扱い</button><button type="button" data-v="1">正解にする</button>
+        </div></section>
+      <section><h3><label for="sens">マイク感度</label><button type="button" class="help" data-help="hSens" aria-expanded="false" aria-label="説明を見る">?</button></h3>
+        <div class="helptext" id="hSens" hidden><ul>
+          <li>下のメーターは声の大きさ。黒い線を超えた声だけを判定する（歌っている間だけ動く）</li>
+          <li>近づかないと反応しないときは右へ、周りの音を拾うときは左へ</li></ul></div>
+        <input type="range" id="sens" min="1" max="10" step="1" value="7">
+        <div class="meter" aria-hidden="true"><i id="lvl"></i><b id="thr"></b></div>
+      </section>
+    </div>
+  </dialog>
 
   <div class="stage"><canvas id="cv" aria-label="音程バー"></canvas></div>
   <div class="lyric" id="lyric" aria-live="polite"></div>
@@ -794,10 +819,20 @@ function reload(){stopAll();song=build(part);fillBars();resetScore();lastLy=null
 for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll();
   store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
   trail=[];lastLy=null;$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
-seg("modeSeg",v=>{mode=v;store.set("kite-mode",v);renderProgressLink()});
-document.querySelectorAll("#modeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===mode?"true":"false"));
-document.querySelectorAll("#partSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===part?"true":"false"));
-seg("partSeg",v=>{part=v;store.set("kite-voice",v);renderProgressLink();reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
+seg("modeSeg",v=>{mode=v;store.set("kite-mode",v);renderProgressLink();showNow()});
+function mark(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v?"true":"false"))}
+function showNow(){$("curPart").textContent=PART_NAME[part];$("curMode").textContent=MODES[mode].name}
+{const g=store.get("kite-guide"),o=store.get("kite-oct");if(g==="0"||g==="1")$("guide").value=g;if(o==="0"||o==="1")$("oct").value=o}
+mark("modeSeg",mode);mark("partSeg",part);mark("guideSeg",$("guide").value);mark("octSeg",$("oct").value);showNow();
+seg("guideSeg",v=>{$("guide").value=v;store.set("kite-guide",v)});
+seg("octSeg",v=>{$("oct").value=v;store.set("kite-oct",v)});
+const dlg=$("settings");
+function openSet(){if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
+function closeSet(){if(dlg.close)dlg.close();else dlg.removeAttribute("open")}
+$("btnGear").addEventListener("click",openSet);$("btnNow").addEventListener("click",openSet);
+$("btnClose").addEventListener("click",closeSet);
+dlg.addEventListener("click",e=>{if(e.target===dlg)closeSet()});
+seg("partSeg",v=>{part=v;store.set("kite-voice",v);renderProgressLink();showNow();reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
