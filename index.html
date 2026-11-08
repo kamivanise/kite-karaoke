@@ -69,6 +69,12 @@ details summary{cursor:pointer;font-weight:700}
 code{font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:var(--bg);padding:1px 5px;border-radius:4px}
 ul{margin:0;padding-left:1.2em}
 footer{font-size:.8rem;color:var(--muted)}
+.recs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column}
+.recs li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.recs .rd{color:var(--muted);font-variant-numeric:tabular-nums}
+.recs .rp{min-width:0}
+.recs .rs{font-variant-numeric:tabular-nums}
+label.btn{display:inline-block}
 footer a{color:inherit}
 </style>
 </head>
@@ -88,8 +94,9 @@ footer a{color:inherit}
       </div></div>
     <div class="group"><span class="label">判定</span>
       <div class="seg" id="modeSeg">
-        <button type="button" data-v="easy" aria-pressed="true">やさしい（±半音）</button>
+        <button type="button" data-v="easy" aria-pressed="true">やさしい</button>
         <button type="button" data-v="normal" aria-pressed="false">ふつう</button>
+        <button type="button" data-v="hard" aria-pressed="false">むずかしい</button>
       </div></div>
     <div class="group"><span class="label">練習する小節</span>
       <div class="rangeSel"><select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select></div></div>
@@ -119,6 +126,24 @@ footer a{color:inherit}
     <div class="score"><b id="scoreNum">--</b><span id="scoreLbl" class="chip">まだ歌っていません</span></div>
     <div class="msg" id="msg">「マイクで歌う」を押すと4拍のカウントのあとに始まります。お手本の音をスピーカーで鳴らすとマイクが拾ってしまうので、イヤホンを使うか「お手本の音：なし」にしてください。</div>
   </div>
+
+  <details class="panel" id="records">
+    <summary>わたしの記録 <span class="chip" id="recCount"></span></summary>
+    <div class="msg">記録はこの端末のブラウザの中にだけ保存されます。ほかの人の端末やインターネット上には送られません。</div>
+    <ul class="recs" id="recList"></ul>
+    <div class="actions">
+      <button class="btn" id="btnExport" type="button">JSONで書き出す</button>
+      <label class="btn" for="recFile">JSONを読み込む</label>
+      <input type="file" id="recFile" accept="application/json,.json" hidden>
+      <button class="btn" id="btnClear" type="button">記録を消す</button>
+    </div>
+    <div class="actions" id="clearConfirm" hidden>
+      <span class="msg warn">この端末の記録をすべて消します。元に戻せません。</span>
+      <button class="btn primary" id="btnClearYes" type="button">消す</button>
+      <button class="btn" id="btnClearNo" type="button">やめる</button>
+    </div>
+    <div class="msg" id="recMsg"></div>
+  </details>
 
   <footer>個人の練習用ページです。<a href="mic-test.html">マイク動作テスト</a></footer>
 </div>
@@ -484,8 +509,9 @@ function parse(text){
   return {notes,total:beat,errs,bars};
 }
 function build(p){return parse(SAMPLE[p])}
+function MODES_DEFAULT(){const m=store.get("kite-mode");return m==="normal"||m==="hard"?m:"easy"}
 
-let part=(store.get("kite-voice")||"A");if(!"SAM".includes(part)||part.length!==1)part="A";let mode="easy";
+let part=(store.get("kite-voice")||"A");if(!"SAM".includes(part)||part.length!==1)part="A";let mode=MODES_DEFAULT();
 let song=build(part);
 const $=id=>document.getElementById(id);
 const cv=$("cv"),ctx2=cv.getContext("2d");
@@ -542,7 +568,8 @@ function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"squa
 // ---- session ----
 let run=null,trail=[],frames=0,hits=0;
 function spb(){return 60/BPM}
-function tol(){return mode==="easy"?100:50}
+const MODES={easy:{tol:200,name:"やさしい"},normal:{tol:100,name:"ふつう"},hard:{tol:50,name:"むずかしい"}};
+function tol(){return MODES[mode].tol}
 function nBars(){return Math.max(1,song.bars.length)}
 function barOf(beat){let i=0;while(i+1<song.bars.length&&song.bars[i+1]<=beat+1e-6)i++;return i}
 function barEnd(i){return i+1<song.bars.length?song.bars[i+1]:song.total}
@@ -594,14 +621,53 @@ function stopAll(finished){
 function uiRunning(on){$("btnStop").disabled=!on;$("btnMic").disabled=on;$("btnGuide").disabled=on}
 function showScore(finished){
   if(!frames){$("scoreNum").textContent="--";$("scoreLbl").textContent="判定できる声がありませんでした";
-    msg(song.notes.some(n=>n.start>=rng().b0&&n.start<rng().b1)?"声が拾えていません。マイク感度を右に上げてみてください。":"選んだ範囲はアルトが休みの小節だけです。範囲を変えてください。",true);return}
+    msg(song.notes.some(n=>n.start>=rng().b0&&n.start<rng().b1)?"声が拾えていません。マイク感度を右に上げてみてください。":"選んだ範囲はこのパートが休みの小節だけです。範囲を変えてください。",true);return}
   const p=Math.round(hits/frames*100);
   $("scoreNum").textContent=p+"%";
   const r=rng();
-  $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+(mode==="easy"?"やさしい":"ふつう")+"判定・"+(finished?"最後まで":"途中まで");
+  addRecord({at:new Date().toISOString(),part,from:r.a,to:r.b,mode,score:p,finished:!!finished});
+  $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+MODES[mode].name+"判定・"+(finished?"最後まで":"途中まで");
   const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${barOf(n.start)+1}小節目`)});
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
 }
+// ---- 記録（この端末のブラウザだけに保存） ----
+const PART_NAME={S:"ソプラノ",A:"アルト",M:"男声"};
+function loadRecs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
+function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderRecs()}
+function fmtDate(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
+function renderRecs(){
+  const a=loadRecs(),box=$("recList");box.innerHTML="";
+  $("recCount").textContent=a.length?`${a.length}件`:"";
+  if(!a.length){box.innerHTML='<li class="msg">まだ記録がありません。「マイクで歌う」で歌い終わると、ここに残ります。</li>';return}
+  const best={};for(const x of a){const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;if(!best[k]||x.score>best[k])best[k]=x.score}
+  for(const x of a.slice().reverse().slice(0,30)){
+    const li=document.createElement("li");const k=`${x.part}|${x.from}|${x.to}|${x.mode}`;
+    li.innerHTML=`<span class="rd"></span><span class="rp"></span><b class="rs"></b>`;
+    li.querySelector(".rd").textContent=fmtDate(x.at);
+    li.querySelector(".rp").textContent=`${PART_NAME[x.part]||"?"} ${x.from}〜${x.to}小節・${(MODES[x.mode]||{}).name||x.mode}${x.finished?"":"（途中）"}`;
+    li.querySelector(".rs").textContent=x.score+"%"+(best[k]===x.score?" ★":"");
+    box.appendChild(li)}
+}
+$("btnExport").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({app:"kite-karaoke",version:1,exportedAt:new Date().toISOString(),records:loadRecs()},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`kite-records-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  $("recMsg").textContent="記録をJSONファイルとして書き出しました。";
+});
+$("recFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());const inc=(Array.isArray(j)?j:j.records||[]).filter(x=>x&&typeof x.score==="number"&&x.at);
+    const cur=loadRecs(),seen=new Set(cur.map(x=>x.at+x.part+x.from+x.to+x.mode));
+    const add=inc.filter(x=>!seen.has(x.at+x.part+x.from+x.to+x.mode));
+    saveRecs(cur.concat(add).sort((p,q)=>p.at<q.at?-1:1));renderRecs();
+    $("recMsg").textContent=`${add.length}件を読み込みました（重複は除きました）。`}
+  catch(err){$("recMsg").textContent="このファイルは読み込めませんでした。書き出したJSONファイルを選んでください。"}
+  e.target.value="";
+});
+$("btnClear").addEventListener("click",()=>{$("clearConfirm").hidden=false});
+$("btnClearNo").addEventListener("click",()=>{$("clearConfirm").hidden=true});
+$("btnClearYes").addEventListener("click",()=>{saveRecs([]);$("clearConfirm").hidden=true;renderRecs();$("recMsg").textContent="記録を消しました。"});
 function msg(t,warn){const m=$("msg");m.textContent=t;m.classList.toggle("warn",!!warn)}
 
 // ---- render ----
@@ -687,14 +753,15 @@ function reload(){stopAll();song=build(part);fillBars();resetScore();lastLy=null
 for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll();
   store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
   trail=[];lastLy=null;$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
-seg("modeSeg",v=>{mode=v});
+seg("modeSeg",v=>{mode=v;store.set("kite-mode",v)});
+document.querySelectorAll("#modeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===mode?"true":"false"));
 document.querySelectorAll("#partSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===part?"true":"false"));
 seg("partSeg",v=>{part=v;store.set("kite-voice",v);reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
 $("btnStop").addEventListener("click",()=>stopAll(false));
-fillBars();resize();requestAnimationFrame(frame);
+fillBars();renderRecs();resize();requestAnimationFrame(frame);
 })();
 </script>
 </body>
