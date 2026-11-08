@@ -57,7 +57,15 @@ canvas{display:block;width:100%;height:260px;touch-action:pan-y}
 .chip{font-size:.8rem;border-radius:999px;padding:2px 10px;border:1px solid var(--line);color:var(--muted)}
 .msg{font-size:.88rem;color:var(--muted)} .msg.warn{color:var(--warn)}
 .topbar{display:flex;align-items:center;gap:10px}
-.topbar h1{flex:1;min-width:0}
+.topbar h1{flex:1;min-width:0;margin:0}
+.songbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;max-width:100%;font:inherit;letter-spacing:inherit}
+.topbar h1 .songbtn #songTitle{color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar h1 .songbtn .caret{font-family:var(--body);font-size:.9rem;color:var(--muted)}
+.songbtn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.songlist{display:flex;flex-direction:column;gap:8px}
+.songlist button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:12px 14px;font:700 1rem var(--body);cursor:pointer}
+.songlist button[aria-current="true"]{border-color:var(--fg)}
+.songlist small{color:var(--muted);font-weight:400;font-size:.8rem}
 .now{display:flex;gap:0;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:700 .85rem var(--body);cursor:pointer;white-space:nowrap}
 .now span+span::before{content:"・";color:var(--muted)}
 .gear{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.15rem;line-height:1;cursor:pointer}
@@ -124,7 +132,7 @@ footer a{color:inherit}
 <body>
 <div class="wrap">
   <div class="topbar">
-    <h1>カイト</h1>
+    <h1><button type="button" class="songbtn" id="btnSong" aria-haspopup="dialog"><span id="songTitle"></span><span class="caret">▾</span></button></h1>
     <button type="button" class="now" id="btnNow" aria-haspopup="dialog"><span id="curPart"></span><span id="curMode"></span></button>
     <button type="button" class="gear" id="btnGear" aria-haspopup="dialog" aria-label="設定">⚙</button>
   </div>
@@ -144,6 +152,13 @@ footer a{color:inherit}
       <div class="crank" id="cRank"></div>
       <ul class="clist" id="cList"></ul>
       <button type="button" class="btn primary cok" id="cOk">やったね！</button>
+    </div>
+  </dialog>
+
+  <dialog id="songDlg" aria-labelledby="songDlgTitle">
+    <div class="sheet">
+      <div class="shead"><h2 id="songDlgTitle">曲をえらぶ</h2><button type="button" class="close" id="btnSongClose" aria-label="閉じる">×</button></div>
+      <div class="songlist" id="songList"></div>
     </div>
   </dialog>
 
@@ -220,341 +235,15 @@ footer a{color:inherit}
   <footer><a href="mic-test.html">マイク動作テスト</a></footer>
 </div>
 
+<script src="songs/kite.js"></script>
 <script>
 (()=>{
-const BPM=89;
-const SAMPLE={
-S:`# 1-6
-Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
-Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
-C5:1.5 Db5:0.5 Db5:1 r:0.5 Db5:0.5 |
-C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 F4:1 r:0.5 Eb4:0.25 F4:0.25 |
-Gb4:1.5 F4:0.25 Eb4:0.25 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
-# 7-8
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |
-# 9-12 [A] 休み
-r:16 |
-# 13-14
-Bb4:2 Ab4:2 |
-Gb4:2 F4:1 r:0.5 Bb3:0.25 Db4:0.25 |
-# 15-18 [B]
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |
-r:3 Eb4:0.5 F4:0.25 Gb4:0.25~ |
-Gb4:1 F4:0.5 Eb4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
-# 19-20
-r:4 |
-r:3.5 Db4:0.5 |
-# 21-25（25はD♮）
-Bb4:0.5 Gb4:0.5 Ab4:0.5 Bb4:0.5 C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 |
-F4:1.5 Bb4:0.5 Bb4:1 r:0.5 Bb4:0.5 |
-Ab4:0.5 Gb4:0.5 F4:0.5 Gb4:0.5 Ab4:1 Db4:1 |
-Bb4:1.5 A4:0.25 Bb4:0.25 C5:2 |
-r:2 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-# 26-33（♭2つの調）
-C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
-G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
-G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
-D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
-Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
-A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
-# 34-42 休み（35から♭5つの調）
-r:32 |
-r:3.5 Db4:0.5 |
-# 43-48 [E]（1-6小節と同じ）
-Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
-Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
-C5:1.5 Db5:0.5 Db5:1 r:0.5 Db5:0.5 |
-C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 F4:1 r:0.5 Eb4:0.25 F4:0.25 |
-Gb4:1.5 F4:0.25 Eb4:0.25 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
-# 49-52 [F]（15-18小節と同じ）
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |
-r:3 Eb4:0.5 F4:0.25 Gb4:0.25~ |
-Gb4:1 F4:0.5 Eb4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
-# 53-54
-r:4 |
-r:3.5 Db4:0.5 |
-# 55-59（21-25小節と同じ）
-Bb4:0.5 Gb4:0.5 Ab4:0.5 Bb4:0.5 C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 |
-F4:1.5 Bb4:0.5 Bb4:1 r:0.5 Bb4:0.5 |
-Ab4:0.5 Gb4:0.5 F4:0.5 Gb4:0.5 Ab4:1 Db4:1 |
-Bb4:1.5 A4:0.25 Bb4:0.25 C5:2 |
-r:2 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-# 60-67 [G]
-C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
-G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
-G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
-D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
-Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
-A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
-# 68 休み
-r:4 |
-# 69-72 [H]
-D4:0.5 F4:0.5 Bb4:0.5 C5:0.5~ C5:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
-F4:0.5 A4:0.5 C5:0.5 Eb5:0.5~ Eb5:0.5 D5:0.5 C5:0.5 Bb4:0.5~ |
-Bb4:2 r:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
-F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
-# 73-76
-D4:0.5 F4:0.5 Bb4:0.5 Bb4:0.25 C5:0.25~ C5:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
-F4:0.5 A4:0.5 C5:0.5 Eb5:0.5~ Eb5:0.5 D5:0.5 C5:0.5 Bb4:0.5~ |
-Bb4:2 r:0.5 Bb4:0.5 C5:0.5 D5:0.5 |
-G4:1 A4:1 Bb4:1 r:0.5 A4:0.25 G4:0.25 |
-# 77 は2/4拍子
-@2 F4:1 Bb4:1 |
-@4 Eb5:4~ |
-Eb5:0.5 r:3 D5:0.25 C5:0.25 |
-D5:1.5 C5:0.25 Bb4:0.25 A4:1.5 Bb4:0.5 |
-# 81-84 [I]
-Bb4:3 r:1 |
-r:4 |
-C5:4 |
-F5:1.5 r:0.5 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-# 85-92 [J]（26-33小節と同じ）
-C5:1 C5:0.5 D5:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 A4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 |
-G4:1 G4:0.5 Bb4:0.5 A4:0.25 G4:0.25 F4:0.5 G4:0.5 G4:0.5~ |
-G4:1 r:1 D5:0.5 Eb5:0.5 D5:0.25 C5:0.25 Bb4:0.5 |
-C5:1 C5:0.5 F5:0.5 Eb5:0.25 D5:0.25 C5:0.5 D5:0.5 D5:0.5~ |
-D5:1 r:1 F4:0.5 Bb4:0.5 D5:0.5 Eb5:0.5~ |
-Eb5:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
-A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
-# 93-96 [K]
-r:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
-A4:0.5 Bb4:0.5~ Bb4:2 r:1 |
-r:1 D5:0.5 C5:0.5~ C5:1 Bb4:0.5 A4:0.5~ |
-A4:0.5 Bb4:0.5~ Bb4:3~ |
-# 97-100（98-99は2つに分かれる。上の声を採用）
-Bb4:4 |
-C5:4 |
-Eb5:4 |
-r:4 |`,
-M:`# 1-7 休み
-r:28 |
-r:3.5 Db3:0.5 |
-# 9-12 [A]
-Db3:1.5 Ab3:0.5 Ab3:1 r:0.5 Db3:0.5 |
-Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 F3:1 r:0.5 Eb3:0.5 |
-Db3:0.5 Eb3:0.5 F3:0.5 Ab3:0.5 Bb3:1 F3:1 |
-C4:1.5 Db4:0.5 Db4:1 r:0.5 Db4:0.5 |
-# 13-16
-C4:0.5 Bb3:0.5 Ab3:0.5 Gb3:0.5 F3:1 r:0.5 Eb3:0.25 F3:0.25 |
-Gb3:1.5 F3:0.25 Eb3:0.25 Db3:1 r:0.5 F3:0.5 |
-Gb3:1 Gb3:0.25 Gb3:0.25 Gb3:0.5 Ab3:1.5 Gb3:0.5 |
-Gb3:2 r:2 |
-# 17-20 [B]（G3 = ソ♮, A3 = ラ♮）
-r:8 |
-r:3 F3:0.5 Gb3:0.25 G3:0.25~ |
-G3:1 A3:0.5 Bb3:0.25 Bb3:0.25~ Bb3:0.5 r:1.5 |
-# 21-25
-r:4 |
-r:3.5 Bb3:0.5 |
-Ab3:0.5 Gb3:0.5 F3:0.5 Gb3:0.5 Ab3:1 Db3:1 |
-Gb3:1.5 Gb3:0.25 Gb3:0.25 F3:2 |
-r:2 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-# 26-33 [C]（♭2つの調）
-Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
-G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
-Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
-F3:0.5 F3:0.5~ F3:2 r:1 |
-# 34 休み
-r:4 |
-# 35-42 [D]（♭5つの調）
-Db3:1.5 Ab3:0.5 Ab3:1 r:0.5 Db3:0.5 |
-Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 F3:1 r:0.5 Eb3:0.5 |
-Db3:0.5 Eb3:0.5 F3:0.5 Ab3:0.5 Bb3:1 F3:1 |
-C4:1.5 Db4:0.5 Db4:1 r:0.5 Db4:0.5 |
-C4:0.5 Bb3:0.5 Ab3:0.5 Gb3:0.5 F3:1 r:0.5 Eb3:0.25 F3:0.25 |
-Gb3:1.5 F3:0.25 Eb3:0.25 Db3:1 r:0.5 Db3:0.25 Db3:0.25 |
-Eb3:1 F3:0.25 Eb3:0.25 Db3:0.5 Eb3:1.5 Db3:0.5 |
-Db3:2 r:2 |
-# 43-52 休み
-r:40 |
-# 53-56
-r:3 Ab3:0.5 Ab3:0.25 A3:0.25~ |
-A3:1 A3:0.5 Bb3:0.25 Bb3:0.25~ Bb3:0.5 r:1.5 |
-r:4 |
-r:3.5 Bb3:0.5 |
-# 57-59（23-25小節と同じ）
-Ab3:0.5 Gb3:0.5 F3:0.5 Gb3:0.5 Ab3:1 Db3:1 |
-Gb3:1.5 Gb3:0.25 Gb3:0.25 F3:2 |
-r:2 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-# 60-67 [G]（26-33小節と同じ）
-Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
-G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
-Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
-F3:0.5 F3:0.5~ F3:2 r:1 |
-# 68 休み
-r:4 |
-# 69-72 [H]
-F3:2 G3:2 |
-A3:4 |
-Bb3:2 r:0.5 Bb3:0.5 A3:0.5 G3:0.5 |
-F3:0.5 F3:0.5 G3:0.5 A3:0.5 Bb3:1 r:1 |
-# 73-76
-F3:0.5 F3:0.5 F3:0.5 F3:0.25 G3:0.25~ G3:0.5 G3:0.5 G3:0.5 G3:0.5 |
-A3:0.5 A3:0.5 A3:0.5 A3:0.5~ A3:0.5 A3:0.5 A3:0.5 Bb3:0.5~ |
-Bb3:2 r:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5 |
-Bb3:1 A3:1 Bb3:1 r:0.5 A3:0.25 G3:0.25 |
-# 77 は2/4拍子
-@2 F3:1 Bb3:1 |
-@4 Bb3:4~ |
-Bb3:0.5 r:3.5 |
-r:4 |
-# 81-84 [I]
-F3:4~ |
-F3:4 |
-Bb3:4 |
-Bb3:1.5 r:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-# 85-92 [J]（26-33小節と同じ）
-Bb3:1 Bb3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 F3:0.5 F3:0.25 F3:0.25 F3:0.5 |
-G3:1 G3:0.5 Bb3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 Bb3:0.5 Bb3:0.5 Bb3:0.25 Bb3:0.25 Bb3:0.5 |
-Bb3:1 Bb3:0.5 A3:0.5 A3:0.25 G3:0.25 F3:0.5 G3:0.5 G3:0.5~ |
-G3:1 r:1 F3:0.5 Bb3:0.5 Bb3:0.5 Bb3:0.5~ |
-Bb3:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
-F3:0.5 F3:0.5~ F3:2 r:1 |
-# 93-96 [K]
-r:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
-F3:0.5 F3:0.5~ F3:2 r:1 |
-r:1 Bb3:0.5 A3:0.5~ A3:1 G3:0.5 F3:0.5~ |
-F3:0.5 G3:0.5~ G3:3~ |
-# 97-100
-G3:4 |
-Bb3:4~ |
-Bb3:4 |
-r:4 |`,
-A:`# 1-4
-Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
-Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
-F4:1.5 F4:0.5 F4:1 r:0.5 Bb4:0.5 |
-# 5-8
-Ab4:0.5 Gb4:0.5 F4:0.5 Eb4:0.5 Db4:1 r:0.5 C4:0.25 Db4:0.25 |
-Eb4:1.5 Db4:0.25 C4:0.25 Bb3:1 r:0.5 Bb3:0.25 Db4:0.25 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |
-# 9-12 [A] アルトは休み
-r:16 |
-# 13-16
-Eb4:3 Db4:1 |
-Db4:1 C4:1 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25~ |
-# 17-20 [B]
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25~ |
-Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25~ Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25~ |
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25~ |
-F4:1 Eb4:0.5 Db4:0.25 Db4:0.25~ Db4:0.5 r:1.5 |
-# 21-24
-r:4 |
-r:1 Eb4:1 Db4:1 C4:1 |
-Db4:3 Db4:1 |
-Db4:1.5 Db4:0.25 Db4:0.25 Eb4:2 |
-# 25
-r:2 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-# 26-28 [C] ここから♭2つの調（レ・ラ・ソは♭なし）
-F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
-D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
-Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
-# 29-33（♭2つの調のまま）
-Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
-G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
-C4:0.5 D4:0.5~ D4:2 r:1 |
-# 34-41 休み（35小節[D]から♭5つの調に戻る）
-r:32 |
-# 42-48 [E]（43-48は1-6小節と同じ）
-r:3.5 Db4:0.5 |
-Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
-Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
-F4:1.5 F4:0.5 F4:1 r:0.5 Bb4:0.5 |
-Ab4:0.5 Gb4:0.5 F4:0.5 Eb4:0.5 Db4:1 r:0.5 C4:0.25 Db4:0.25 |
-Eb4:1.5 Db4:0.25 C4:0.25 Bb3:1 r:0.5 Bb3:0.25 Db4:0.25 |
-# 49-52（7・16・17・18小節と同じ）
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25~ |
-Db4:0.5 r:0.5 C4:0.75 Db4:0.25~ Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25~ |
-Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25~ Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25~ |
-# 53-56
-Db4:0.5 C4:0.5 Bb3:0.5 C4:0.25 Db4:0.75 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25~ |
-F4:1 Eb4:0.5 Db4:0.25 Db4:0.75 r:1.5 |
-r:4 |
-r:1 Eb4:1 Db4:1 Bb3:1 |
-# 57-59（23-25小節と同じ）
-Db4:3 Db4:1 |
-Db4:1.5 Db4:0.25 Db4:0.25 Eb4:2 |
-r:2 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-# 60-67 [G]（26-33小節と同じ・♭2つの調）
-F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
-D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
-Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
-Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
-G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
-C4:0.5 D4:0.5~ D4:2 r:1 |
-# 68 休み
-r:4 |
-# 69-72 [H]
-D4:2 Eb4:2 |
-F4:2 F#4:2 |
-G4:2 r:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
-F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
-# 73-76（77小節から2/4拍子）
-D4:0.5 D4:0.5 D4:0.5 D4:0.25 Eb4:0.75 Eb4:0.5 Eb4:0.5 Eb4:0.5 |
-F4:0.5 F4:0.5 F4:0.5 F#4:1 F#4:0.5 F#4:0.5 G4:0.5~ |
-G4:2 r:0.5 G4:0.5 G4:0.5 G4:0.5 |
-Eb4:1 C4:1 D4:1 r:0.5 A4:0.25 G4:0.25 |
-# 77 は2/4拍子、78から4/4拍子
-@2 F4:1 F4:1 |
-@4 Gb4:4~ |
-Gb4:0.5 r:3.5 |
-r:4 |
-# 81-84 [I]
-r:4 |
-D4:4 |
-Eb4:4 |
-Bb4:1.5 r:0.5 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-# 85-92 [J]（26-33小節と同じ）
-F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5~ |
-D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
-Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5~ |
-Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
-G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5~ |
-Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5~ |
-G4:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
-C4:0.5 D4:0.5~ D4:2 r:1 |
-# 93-96 [K]
-r:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
-C4:0.5 D4:0.5~ D4:2 r:1 |
-r:1 F4:0.5 Eb4:0.5~ Eb4:1 D4:0.5 C4:0.5~ |
-C4:0.5 D4:0.5~ D4:3~ |
-# 97-100
-D4:4 |
-Eb4:4~ |
-Eb4:4 |
-r:4 |`
-};
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const SONGS=window.KARA_SONGS||[];
+let songId=store.get("kara-song");if(!SONGS.some(x=>x.id===songId))songId=(SONGS[0]||{}).id;
+let cur=SONGS.find(x=>x.id===songId);
+const PARTS=()=>"SAM".split("").filter(p=>cur.parts[p]);
+const recSong=x=>x.song||"kite";
 
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
@@ -580,10 +269,10 @@ function parse(text){
   for(let b=0;b<beat-1e-6;){while(mi<meters.length&&meters[mi].beat<=b+1e-6){len=meters[mi].len;mi++}bars.push(b);b+=len}
   return {notes,total:beat,errs,bars};
 }
-function build(p){return parse(SAMPLE[p])}
+function build(p){return parse(cur.parts[p])}
 function MODES_DEFAULT(){const m=store.get("kite-mode");return m==="normal"||m==="hard"?m:"easy"}
 
-let part=(store.get("kite-voice")||"A");if(!"SAM".includes(part)||part.length!==1)part="A";let mode=MODES_DEFAULT();
+let part=store.get("kite-voice");if(!PARTS().includes(part))part=PARTS().includes("A")?"A":PARTS()[0];let mode=MODES_DEFAULT();
 let song=build(part);
 const $=id=>document.getElementById(id);
 const cv=$("cv"),ctx2=cv.getContext("2d");
@@ -639,7 +328,7 @@ function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"squa
 
 // ---- session ----
 let run=null,trail=[],frames=0,hits=0;
-function spb(){return 60/BPM}
+function spb(){return 60/cur.bpm}
 const MODES={easy:{tol:200,name:"やさしい"},normal:{tol:100,name:"ふつう"},hard:{tol:50,name:"むずかしい"}};
 function tol(){return MODES[mode].tol}
 function nBars(){return Math.max(1,song.bars.length)}
@@ -647,20 +336,23 @@ function barOf(beat){let i=0;while(i+1<song.bars.length&&song.bars[i+1]<=beat+1e
 function barEnd(i){return i+1<song.bars.length?song.bars[i+1]:song.total}
 function rng(){let a=+$("barFrom").value||1,b=+$("barTo").value||nBars();if(b<a)[a,b]=[b,a];return{a,b,b0:song.bars[a-1]||0,b1:barEnd(b-1)}}
 function fillBars(){
-  const n=nBars();let f=+(store.get("kite-from")||1),t=+(store.get("kite-to")||n);
+  const n=nBars();let rg={};try{rg=JSON.parse(store.get("kara-range-"+songId)||"null")||{}}catch(e){}
+  if(songId==="kite"&&rg.f==null){rg={f:store.get("kite-from"),t:store.get("kite-to")}}
+  let f=+(rg.f||1),t=+(rg.t||n);
   f=Math.min(Math.max(1,f),n);t=Math.min(Math.max(1,t),n);
   for(const [id,v] of [["barFrom",f],["barTo",t]]){const el=$(id);el.innerHTML="";
     for(let i=1;i<=n;i++){const o=document.createElement("option");o.value=i;o.textContent=i+"小節";el.appendChild(o)}el.value=v}
 }
 let bf=[],bh=[],reached=-1;
-function resetScore(){frames=0;hits=0;trail=[];bf=new Array(25).fill(0);bh=new Array(25).fill(0);reached=-1;for(const n of song.notes){n.frames=0;n.hit=0;n.dsum=0;n.dcnt=0}endReview()}
+const NB=()=>Math.ceil(nBars()/4);
+function resetScore(){frames=0;hits=0;trail=[];bf=new Array(NB()).fill(0);bh=new Array(NB()).fill(0);reached=-1;for(const n of song.notes){n.frames=0;n.hit=0;n.dsum=0;n.dcnt=0}endReview()}
 function noteAt(beat){for(const n of song.notes)if(beat>=n.start&&beat<n.start+n.dur)return n;return null}
 function judge(beat,midi){
   if(run&&(beat<run.b0||beat>=run.b1))return;
   const n=noteAt(beat);let shown=midi,ok=false;
   if(midi!=null&&n&&$("oct").value==="1")shown=midi-12*Math.round((midi-n.midi)/12);
   if(beat>reached)reached=beat;
-  if(n){const k=Math.min(24,Math.floor(barOf(n.start)/4));n.frames++;frames++;bf[k]++;
+  if(n){const k=Math.min(NB()-1,Math.floor(barOf(n.start)/4));n.frames++;frames++;bf[k]++;
     if(shown!=null&&Math.abs(shown-n.midi)*100<=tol()){ok=true;n.hit++;hits++;bh[k]++}}
   if(n&&shown!=null){n.dsum+=shown-n.midi;n.dcnt++}
   trail.push({beat,midi:shown,ok});if(trail.length>30000)trail.shift();
@@ -703,12 +395,12 @@ function showScore(finished){
   const r=rng();
   // 4小節ブロックの点数：範囲がブロック全体を含み、最後まで歌った（通過した）ブロックだけ
   const blocks={};
-  for(let k=0;k<25;k++){
+  for(let k=0;k<NB();k++){
     const a=k*4+1,b=k*4+4;if(a<r.a||b>r.b||bf[k]<15)continue;
     if(!finished&&reached<barEnd(b-1)-0.05)continue;
     blocks[k+1]=Math.round(bh[k]/bf[k]*100)}
-  const before=loadRecs().filter(x=>x.part===part&&x.mode===mode&&x.blocks);
-  addRecord({at:new Date().toISOString(),part,from:r.a,to:r.b,mode,score:p,finished:!!finished,blocks});
+  const before=loadRecs().filter(x=>recSong(x)===songId&&x.part===part&&x.mode===mode&&x.blocks);
+  addRecord({at:new Date().toISOString(),song:songId,part,from:r.a,to:r.b,mode,score:p,finished:!!finished,blocks});
   startReview(r);
   celebrate(p,blocks,before);
   $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+MODES[mode].name+"判定・"+(finished?"最後まで":"途中まで");
@@ -849,7 +541,7 @@ function seg(id,cb){const el=$(id);el.addEventListener("click",e=>{const b=e.tar
   el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v)})}
 function reload(){stopAll();song=build(part);fillBars();resetScore()}
 for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll();
-  store.set("kite-from",$("barFrom").value);store.set("kite-to",$("barTo").value);
+  store.set("kara-range-"+songId,JSON.stringify({f:$("barFrom").value,t:$("barTo").value}));
   trail=[];$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 seg("modeSeg",v=>{mode=v;store.set("kite-mode",v);renderProgressLink();showNow()});
 function mark(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v?"true":"false"))}
@@ -864,20 +556,40 @@ function closeSet(){if(dlg.close)dlg.close();else dlg.removeAttribute("open")}
 $("btnGear").addEventListener("click",openSet);$("btnNow").addEventListener("click",openSet);
 $("btnClose").addEventListener("click",closeSet);
 dlg.addEventListener("click",e=>{if(e.target===dlg)closeSet()});
+// ---- 曲の切り替え ----
+const sdlg=$("songDlg");
+function showSong(){$("songTitle").textContent=cur.title;document.title=cur.title+" 合唱練習";
+  document.querySelectorAll("#partSeg button").forEach(b=>b.hidden=!cur.parts[b.dataset.v])}
+function renderSongList(){const box=$("songList");box.innerHTML="";
+  for(const so of SONGS){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",so.id===songId?"true":"false");
+    b.innerHTML="<span></span><small></small>";b.firstChild.textContent=so.title;
+    b.lastChild.textContent=so.id===songId?"練習中":"";b.addEventListener("click",()=>{selectSong(so.id);sdlg.close?sdlg.close():sdlg.removeAttribute("open")});box.appendChild(b)}}
+function selectSong(id){if(id===songId)return;stopAll();songId=id;cur=SONGS.find(x=>x.id===id);store.set("kara-song",id);
+  if(!cur.parts[part]){part=PARTS().includes("A")?"A":PARTS()[0];store.set("kite-voice",part);mark("partSeg",part)}
+  showSong();showNow();reload();renderProgressLink();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません";msg("")}
+$("btnSong").addEventListener("click",()=>{renderSongList();if(sdlg.showModal)sdlg.showModal();else sdlg.setAttribute("open","")});
+$("btnSongClose").addEventListener("click",()=>{sdlg.close?sdlg.close():sdlg.removeAttribute("open")});
+sdlg.addEventListener("click",e=>{if(e.target===sdlg)sdlg.close()});
+showSong();
 seg("partSeg",v=>{part=v;store.set("kite-voice",v);renderProgressLink();showNow();reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
 $("btnStop").addEventListener("click",()=>stopAll(false));
-{const meta={};for(const p of "SAM"){const sg=parse(SAMPLE[p]),has=new Array(25).fill(false);
-  sg.notes.forEach(n=>{let i=0;while(i+1<sg.bars.length&&sg.bars[i+1]<=n.start+1e-6)i++;has[Math.min(24,Math.floor(i/4))]=true});meta[p]=has}
-  store.set("kite-meta",JSON.stringify(meta))}
+function writeMeta(){let all={};try{all=JSON.parse(store.get("kara-meta")||"{}")||{}}catch(e){}
+  for(const so of SONGS){const parts={};let nb=1;
+    for(const p of "SAM"){if(!so.parts[p])continue;const sg=parse(so.parts[p]);nb=Math.max(nb,Math.ceil(sg.bars.length/4));
+      const has=new Array(Math.ceil(sg.bars.length/4)).fill(false);
+      sg.notes.forEach(n=>{let i=0;while(i+1<sg.bars.length&&sg.bars[i+1]<=n.start+1e-6)i++;has[Math.floor(i/4)]=true});parts[p]=has}
+    all[so.id]={title:so.title,nb,bars:parse(so.parts[Object.keys(so.parts)[0]]).bars.length,parts}}
+  store.set("kara-meta",JSON.stringify(all));store.set("kara-song",songId)}
+writeMeta();
 function renderProgressLink(){
-  const recs=loadRecs().filter(x=>x.part===part&&x.mode===mode&&x.blocks);const per={};
+  const recs=loadRecs().filter(x=>recSong(x)===songId&&x.part===part&&x.mode===mode&&x.blocks);const per={};
   for(const x of recs)for(const [k,v] of Object.entries(x.blocks))(per[k]=per[k]||[]).push(v);
-  let meta={};try{meta=JSON.parse(store.get("kite-meta")||"{}")}catch(e){}
-  const has=meta[part]||new Array(25).fill(true);let pass=0,exc=0,tot=0;
-  for(let k=1;k<=25;k++){if(!has[k-1])continue;tot++;const a=(per[k]||[]).sort((p,q)=>q-p);if(a.length>=2&&a[1]>=70)pass++;if(a.length>=2&&a[1]>=85)exc++}
+  let meta={};try{meta=(JSON.parse(store.get("kara-meta")||"{}")[songId]||{}).parts||{}}catch(e){}
+  const has=meta[part]||new Array(NB()).fill(true);let pass=0,exc=0,tot=0;
+  for(let k=1;k<=NB();k++){if(!has[k-1])continue;tot++;const a=(per[k]||[]).sort((p,q)=>q-p);if(a.length>=2&&a[1]>=70)pass++;if(a.length>=2&&a[1]>=85)exc++}
   $("progSummary").textContent=`${PART_NAME[part]}・${MODES[mode].name}　合格 ${pass} / ${tot}　★ ${exc}`;
 }
 renderProgressLink();

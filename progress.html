@@ -82,6 +82,7 @@ details summary{cursor:pointer;font-weight:700}
 .glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .glegend .g-rest{border:1px solid var(--line)}
 .glegend b{color:var(--fg);font-variant-numeric:tabular-nums}
+.songname{color:var(--muted);font-weight:700;font-size:.95rem}
 .legend .ring{background:none;border:2px solid var(--muted);border-radius:50%}
 .help{flex:none;width:23px;height:23px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .8rem/1 var(--body);cursor:pointer}
 .help[aria-expanded="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
@@ -92,7 +93,8 @@ details summary{cursor:pointer;font-weight:700}
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a class="back" href="index.html" aria-label="カラオケに戻る">←</a><h1>習熟度マップ</h1></div>
+  <div class="top"><a class="back" href="index.html" aria-label="カラオケに戻る">←</a><h1>習熟度マップ</h1><span class="songname" id="songName"></span></div>
+  <div class="tabs" role="tablist" id="songTabs" hidden></div>
 
   <div class="tabs" role="tablist" id="partTabs">
     <button type="button" role="tab" data-v="S">ソプラノ</button>
@@ -108,12 +110,12 @@ details summary{cursor:pointer;font-weight:700}
   <div class="panel">
     <h2>いまの進み<button type="button" class="help" data-help="hSum" aria-expanded="false" aria-label="説明を見る">?</button></h2>
     <div class="helptext" id="hSum" hidden><ul>
-      <li>1〜100小節を4小節ずつ、25ブロックに分けて数えている</li>
+      <li>曲を4小節ずつのブロックに分けて数えている</li>
       <li>ブロックの点は、<b>2番目に良かった点</b>。まぐれの1回ではなく、2回以上取れた点で見る</li>
       <li>★ 達人 85点以上／✓ 合格 70点以上／○ あと少し 50点以上／! 要練習 それ未満</li>
-      <li>棒の全体が25ブロック。灰色はまだ点が決まっていないブロック、薄い色は休みのブロック</li>
+      <li>棒の全体が曲のすべてのブロック。灰色はまだ点が決まっていないブロック、薄い色は休みのブロック</li>
       <li>難易度ごとに別々に数える。記録はこの端末の中だけにある</li></ul></div>
-    <div class="gauge" id="gauge" role="img" aria-label="25ブロックの内訳"></div>
+    <div class="gauge" id="gauge" role="img" aria-label="ブロックの内訳"></div>
     <div class="glegend" id="glegend"></div>
   </div>
 
@@ -181,28 +183,37 @@ const PART={S:"ソプラノ",A:"アルト",M:"男声"},MODE={easy:"やさしい"
 let part=store.get("kite-voice");if(!PART[part])part="A";
 let mode=store.get("kite-mode");if(!MODE[mode])mode="easy";
 function recs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
-function meta(){try{return JSON.parse(store.get("kite-meta")||"{}")}catch(e){return{}}}
+function allMeta(){try{const m=JSON.parse(store.get("kara-meta")||"null");if(m)return m}catch(e){}
+  try{const old=JSON.parse(store.get("kite-meta")||"null");if(old)return{kite:{title:"カイト",nb:25,parts:old}}}catch(e){}return{}}
+let song=store.get("kara-song");{const m=allMeta();if(!m[song])song=Object.keys(m)[0]||"kite"}
+const recSong=x=>x.song||"kite";
+function meta(){return (allMeta()[song]||{}).parts||{}}
+function NB(){return (allMeta()[song]||{}).nb||25}
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function status(v){return v>=85?"exc":v>=70?"good":v>=50?"warn":"crit"}
 const ST={exc:{icon:"★",name:"達人"},good:{icon:"✓",name:"合格"},warn:{icon:"○",name:"あと少し"},crit:{icon:"!",name:"要練習"}};
 function fmt(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 
 function compute(){
-  const has=(meta()[part])||new Array(25).fill(true);
-  const list=recs().filter(x=>x.part===part&&x.mode===mode);
-  const per=Array.from({length:25},()=>[]);
-  for(const x of list)if(x.blocks)for(const [k,v] of Object.entries(x.blocks)){const i=+k-1;if(i>=0&&i<25)per[i].push(v)}
+  const nb=NB(),has=(meta()[part])||new Array(nb).fill(true);
+  const list=recs().filter(x=>recSong(x)===song&&x.part===part&&x.mode===mode);
+  const per=Array.from({length:nb},()=>[]);
+  for(const x of list)if(x.blocks)for(const [k,v] of Object.entries(x.blocks)){const i=+k-1;if(i>=0&&i<nb)per[i].push(v)}
   return {list,blocks:per.map((a,i)=>{const s=a.slice().sort((p,q)=>q-p);
     return {i,rest:!has[i],n:s.length,best:s[0],second:s.length>=2?s[1]:null}})};
 }
 
 function render(){
-  for(const [id,v] of [["partTabs",part],["modeTabs",mode]])
+  {const m=allMeta(),ids=Object.keys(m);$("songName").textContent=(m[song]||{}).title||"";
+    const st=$("songTabs");st.hidden=ids.length<2;
+    if(ids.length>=2&&st.childElementCount!==ids.length){st.innerHTML="";for(const id of ids){const b=document.createElement("button");b.type="button";b.dataset.v=id;b.textContent=m[id].title;st.appendChild(b)}}
+    document.querySelectorAll("#partTabs button").forEach(b=>b.hidden=!(m[song]&&m[song].parts&&m[song].parts[b.dataset.v]))}
+  for(const [id,v] of [["songTabs",song],["partTabs",part],["modeTabs",mode]])
     document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v?"true":"false"));
   const {list,blocks}=compute();
   let e=0,g=0,w=0,c=0,un=0,tot=0;
   for(const b of blocks){if(b.rest)continue;tot++;if(b.second==null){un++;continue}const s=status(b.second);if(s==="exc")e++;else if(s==="good")g++;else if(s==="warn")w++;else c++}
-  const rest=25-tot,segs=[["exc",e],["good",g],["warn",w],["crit",c],["none",un],["rest",rest]];
+  const rest=blocks.length-tot,segs=[["exc",e],["good",g],["warn",w],["crit",c],["none",un],["rest",rest]];
   const gauge=$("gauge"),gl=$("glegend");gauge.innerHTML="";gl.innerHTML="";
   for(const [k,n] of segs){if(!n)continue;const d=document.createElement("i");d.className="g-"+k;d.style.flexGrow=n;
     d.title=`${k==="none"?"未確定":k==="rest"?"休み":ST[k].name} ${n}`;if(n>=2)d.textContent=n;gauge.appendChild(d)}
@@ -232,7 +243,7 @@ function render(){
 }
 
 function drawChart(blocks){
-  const W=760,H=300,L=40,R=12,T=26,B=40,pw=W-L-R,ph=H-T-B,step=pw/25,bw=step-6;
+  const W=760,H=300,L=40,R=12,T=26,B=40,pw=W-L-R,ph=H-T-B,step=pw/blocks.length,bw=step-6;
   const y=v=>T+ph-(v/100)*ph,svg=$("chart");
   const col={exc:css("--exc"),good:css("--good"),warn:css("--warn"),crit:css("--crit"),none:css("--none"),rest:css("--rest"),grid:css("--grid"),axis:css("--axis"),muted:css("--muted"),fg:css("--fg"),line:css("--line"),surface:css("--surface")};
   let h="";
@@ -266,7 +277,7 @@ function drawChart(blocks){
   });
 }
 function tabs(id,set){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);render()})}
-tabs("partTabs",v=>{part=v});tabs("modeTabs",v=>{mode=v});
+tabs("partTabs",v=>{part=v});tabs("songTabs",v=>{song=v;store.set("kara-song",v)});tabs("modeTabs",v=>{mode=v});
 window.addEventListener("storage",render);
 function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
 function showCount(){const n=recs().length;$("recCount").textContent=n?`${n}件`:""}
