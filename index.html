@@ -144,7 +144,7 @@ footer a{color:inherit}
 
   <details class="panel">
     <summary>音符データ（続きを入力する）</summary>
-    <div class="msg">入っているのはアルトの1〜52小節です（楽譜写真と1音ずつ照合済み）。53小節目以降はここに書き足せます。</div>
+    <div class="msg">入っているのはアルトの1〜76小節です（楽譜写真と1音ずつ照合済み）。77小節目以降はここに書き足せます。</div>
     <ul class="msg">
       <li>1音を <code>音名オクターブ:拍数</code> で書きます。例 <code>Db4:1.5</code>（レ♭・付点4分）</li>
       <li>拍数は4分音符=1。8分=0.5、16分=0.25、付点4分=1.5、2分=2</li>
@@ -219,17 +219,47 @@ Eb4:1.5 Db4:0.25 C4:0.25 Bb3:1 r:0.5 Bb3:0.25 Db4:0.25 |
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
 Db4:2 r:1 F4:0.5 Eb4:0.25 Db4:0.25 |
 Db4:0.5 r:0.5 C4:0.75 Db4:0.25 Db4:0.5 r:0.5 C4:0.5 Db4:0.25 Eb4:0.25 |
-Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25 Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25 |`
+Eb4:1 Db4:0.5 C4:0.25 Bb3:0.25 Bb3:0.5 r:0.5 F4:0.5 Eb4:0.25 Db4:0.25 |
+# 53-56
+Db4:0.5 C4:0.5 Bb3:0.5 C4:0.25 Db4:0.75 r:0.5 Ab4:0.5 Gb4:0.25 F4:0.25 |
+F4:1 Eb4:0.5 Db4:0.25 Db4:0.75 r:1.5 |
+r:4 |
+r:1 Eb4:1 Db4:1 Bb3:1 |
+# 57-59（23-25小節と同じ）
+Db4:3 Db4:1 |
+Db4:1.5 Db4:0.25 Db4:0.25 Eb4:2 |
+r:2 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
+# 60-67 [G]（26-33小節と同じ・♭2つの調）
+F4:1 F4:0.5 F4:0.5 Eb4:0.25 D4:0.25 C4:0.5 D4:0.5 D4:0.5 |
+D4:1 r:1 C4:0.5 C4:0.5 C4:0.25 C4:0.25 C4:0.5 |
+Bb3:1 Bb3:0.5 D4:0.5 C4:0.25 Bb3:0.25 A3:0.5 Bb3:0.5 Bb3:0.5 |
+Bb3:1 r:1 F4:0.5 F4:0.5 F4:0.25 F4:0.25 F4:0.5 |
+G4:1 G4:0.5 F4:0.5 C5:0.25 Bb4:0.25 A4:0.5 Bb4:0.5 Bb4:0.5 |
+Bb4:1 r:1 F4:0.5 F4:0.5 F4:0.5 G4:0.5 |
+G4:1 F4:0.5 Eb4:0.5 Eb4:1 D4:0.5 C4:0.5 |
+C4:0.5 D4:0.5 D4:2 r:1 |
+# 68 休み
+r:4 |
+# 69-72 [H]
+D4:2 Eb4:2 |
+F4:2 F#4:2 |
+G4:2 r:0.5 Bb4:0.5 A4:0.5 G4:0.5 |
+F4:0.5 F4:0.5 C4:0.5 Eb4:0.5 D4:1 r:1 |
+# 73-76（77小節から2/4拍子）
+D4:0.5 D4:0.5 D4:0.5 D4:0.25 Eb4:0.75 Eb4:0.5 Eb4:0.5 Eb4:0.5 |
+F4:0.5 F4:0.5 F4:0.5 F#4:1 F#4:0.5 F#4:0.5 G4:0.5 |
+G4:2 r:0.5 G4:0.5 G4:0.5 G4:0.5 |
+Eb4:1 C4:1 D4:1 r:0.5 A4:0.25 G4:0.25 |`
 };
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const texts={},lyrics={};
-for(const p of "A"){texts[p]=store.get("kite-part-v3-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
+for(const p of "A"){texts[p]=store.get("kite-part-v4-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 function parse(text){
   const notes=[];let beat=0;const errs=[];
   text.split("\n").forEach((line,li)=>{
-    line=line.replace(/#.*/,"");
+    line=line.replace(/(^|\s)#.*/,"");
     for(const tok of line.split(/[\s|]+/)){
       if(!tok)continue;
       const [p,d,...ly]=tok.split(":");const dur=parseFloat(d);
@@ -238,7 +268,7 @@ function parse(text){
       const m=/^([A-Ga-g])(b|#)?(-?\d)$/.exec(p);
       if(!m){errs.push(`${li+1}行目「${tok}」の音名`);beat+=dur;continue}
       const midi=12*(+m[3]+1)+PC[m[1].toUpperCase()]+(m[2]==="b"?-1:m[2]==="#"?1:0);
-      notes.push({midi,start:beat,dur,lyric:ly.join(":"),frames:0,hit:0});beat+=dur;
+      notes.push({midi,sp:m[1].toUpperCase()+(m[2]||""),start:beat,dur,lyric:ly.join(":"),frames:0,hit:0});beat+=dur;
     }
   });
   return {notes,total:beat,errs};
@@ -282,7 +312,9 @@ function yin(buf,sr,g){
 const hz2midi=f=>69+12*Math.log2(f/440);
 const SOL=["ド","レ♭","レ","ミ♭","ミ","ファ","ソ♭","ソ","ラ♭","ラ","シ♭","シ"];
 const solName=m=>SOL[((Math.round(m)%12)+12)%12];
-const solLong=m=>(m<60?"低い":m>=72?"高い":"")+solName(m);
+const LET={C:"ド",D:"レ",E:"ミ",F:"ファ",G:"ソ",A:"ラ",B:"シ"};
+const noteSol=n=>n.sp?LET[n.sp[0]]+(n.sp[1]==="b"?"♭":n.sp[1]==="#"?"♯":""):solName(n.midi);
+const solLong=n=>(n.midi<60?"低い":n.midi>=72?"高い":"")+noteSol(n);
 
 // ---- audio ----
 let ac=null;
@@ -441,14 +473,14 @@ function draw(beat){
     c.fillStyle=ink;if(n.lyric&&n.lyric!=="ー")c.fillText(n.lyric,x0+2,yy-2);
     const k=song.notes.indexOf(n),off=n.dur<0.5&&k%2?12:0;
     c.fillStyle=solCol;c.font=`700 11px ${css("--body")}`;c.textBaseline="top";
-    c.fillText(solName(n.midi),x0+2,yy+h+2+off);
+    c.fillText(noteSol(n),x0+2,yy+h+2+off);
     c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   }
   // current target note badge
   const cur=noteAt(beat);
   if(cur){c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,8,8,104,34,8);c.fill();c.globalAlpha=1;
     c.fillStyle=ink;c.font=`11px ${css("--body")}`;c.textBaseline="top";c.fillText("いまの音",16,11);
-    c.font=`700 15px ${css("--body")}`;c.fillText(solLong(cur.midi),16,23);c.textBaseline="bottom"}
+    c.font=`700 15px ${css("--body")}`;c.fillText(solLong(cur),16,23);c.textBaseline="bottom"}
   const vc=css("--voice"),vok=css("--voice-ok");
   for(const p of trail){if(p.midi==null)continue;const xx=x(p.beat);if(xx<-4||xx>W)continue;
     const yy=y(Math.max(lo-1,Math.min(hi+1,p.midi)));c.fillStyle=p.ok?vok:vc;c.globalAlpha=p.ok?1:.55;c.beginPath();c.arc(xx,yy,p.ok?3.4:2.6,0,7);c.fill()}
@@ -467,7 +499,7 @@ function lyricLine(beat){
   const bar=Math.max(0,Math.floor(beat/8))*8;
   const ns=song.notes.filter(n=>n.start>=bar&&n.start<bar+8);
   let html=ns.map(n=>{const cls=beat>=n.start+n.dur?"done":beat>=n.start?"now":"";
-    return n.lyric?`<ruby class="${cls}">${esc(n.lyric)}<rt>${solName(n.midi)}</rt></ruby>`:`<span class="sol ${cls}">${solName(n.midi)}</span>`}).join("");
+    return n.lyric?`<ruby class="${cls}">${esc(n.lyric)}<rt>${noteSol(n)}</rt></ruby>`:`<span class="sol ${cls}">${noteSol(n)}</span>`}).join("");
   if(!ns.length)html=song.notes.length&&beat>=song.total?"":"<small>この区間は休みです</small>";
   if(html!==lastLy){$("lyric").innerHTML=html;lastLy=html}
 }
@@ -494,10 +526,10 @@ $("edText").value=texts.A;
 $("btnApply").addEventListener("click",()=>{
   const t=$("edText").value,r=parse(t);
   if(r.errs.length){$("edMsg").textContent="読めない箇所があります："+r.errs.slice(0,4).join("、");return}
-  texts[edPart]=t;store.set("kite-part-v3-"+edPart,t);if(edPart===part)reload();
+  texts[edPart]=t;store.set("kite-part-v4-"+edPart,t);if(edPart===part)reload();
   $("edMsg").textContent=`反映しました（${r.notes.length}音・${(r.total/4).toFixed(1)}小節）。`;
 });
-$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v3-"+edPart);$("edText").value=SAMPLE[edPart];
+$("btnReset").addEventListener("click",()=>{texts[edPart]=SAMPLE[edPart];store.del("kite-part-v4-"+edPart);$("edText").value=SAMPLE[edPart];
   if(edPart===part)reload();$("edMsg").textContent="最初のデータに戻しました。"});
 $("btnMic").addEventListener("click",startMic);
 $("btnGuide").addEventListener("click",startGuideOnly);
