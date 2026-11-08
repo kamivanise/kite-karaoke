@@ -67,6 +67,30 @@ canvas{display:block;width:100%;height:260px;touch-action:pan-y}
 .tabs button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 dialog{border:none;padding:0;background:transparent;width:min(520px,calc(100% - 24px));max-height:calc(100% - 24px)}
 dialog::backdrop{background:rgba(10,16,24,.45)}
+.cele .cbox{position:relative;overflow:hidden;border-radius:22px;padding:26px 18px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:#fff;
+  background:radial-gradient(120% 90% at 50% 0%,var(--c1),var(--c2));box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.c-exc{--c1:#5b8cff;--c2:#1b2f7a}.c-good{--c1:#2ec46a;--c2:#0d5a2f}.c-warn{--c1:#f6b73c;--c2:#8a4d00}.c-rec{--c1:#ff7a5c;--c2:#7a1d12}.c-crit{--c1:#ff7a5c;--c2:#7a1d12}
+.ctitle{font-family:var(--display);font-size:clamp(2.2rem,11vw,3.2rem);line-height:1.1;letter-spacing:.04em;text-shadow:0 3px 0 rgba(0,0,0,.25);animation:pop .55s cubic-bezier(.2,1.6,.4,1) both}
+.csub{font-size:.9rem;opacity:.9}
+.cscore{display:flex;align-items:baseline;gap:4px}
+.cscore b{font-family:var(--display);font-weight:400;font-size:3.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.cscore span{font-size:1rem;font-weight:700}
+.crank{font-weight:700;border-radius:999px;padding:4px 14px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4)}
+.clist{list-style:none;margin:4px 0 0;padding:0;width:100%;display:flex;flex-direction:column;gap:6px}
+.clist li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:rgba(255,255,255,.14);border-radius:12px;padding:8px 10px;font-size:.88rem;animation:slide .4s both}
+.clist li:nth-child(2){animation-delay:.1s}.clist li:nth-child(3){animation-delay:.2s}.clist li:nth-child(n+4){animation-delay:.3s}
+.clist .w{text-align:left}.clist b{font-variant-numeric:tabular-nums}
+.clist .tag{font-size:.66rem;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 6px;background:#fff;color:#7a1d12}
+.clist .up .tag{color:#1b2f7a}
+.cele .btn.cok{margin-top:6px;min-width:60%;background:#fff;border-color:#fff;color:#17202c;font-size:1rem;padding:12px 18px}
+.cbox > :not(.confetti){position:relative;z-index:1}
+.confetti{position:absolute;inset:0;pointer-events:none}
+.confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:fall linear both}
+@keyframes fall{to{top:110%;transform:rotate(540deg)}}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes slide{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.ctitle,.clist li,.confetti i{animation:none}.confetti{display:none}}
+
 .sheet{background:var(--bg);color:var(--fg);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:16px}
 .shead{display:flex;align-items:center}
 .shead h2{margin:0;font-size:1.1rem;flex:1}
@@ -111,6 +135,18 @@ footer a{color:inherit}
   </div>
 
   <input type="hidden" id="guide" value="1"><input type="hidden" id="oct" value="0">
+  <dialog id="celebrate" class="cele" aria-labelledby="cTitle">
+    <div class="cbox">
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+      <div class="ctitle" id="cTitle"></div>
+      <div class="csub" id="cSub"></div>
+      <div class="cscore"><b id="cScore">0</b><span>点</span></div>
+      <div class="crank" id="cRank"></div>
+      <ul class="clist" id="cList"></ul>
+      <button type="button" class="btn primary cok" id="cOk">やったね！</button>
+    </div>
+  </dialog>
+
   <dialog id="settings" aria-labelledby="setTitle">
     <div class="sheet">
       <div class="shead"><h2 id="setTitle">設定</h2><button type="button" class="close" id="btnClose" aria-label="閉じる">×</button></div>
@@ -671,8 +707,10 @@ function showScore(finished){
     const a=k*4+1,b=k*4+4;if(a<r.a||b>r.b||bf[k]<15)continue;
     if(!finished&&reached<barEnd(b-1)-0.05)continue;
     blocks[k+1]=Math.round(bh[k]/bf[k]*100)}
+  const before=loadRecs().filter(x=>x.part===part&&x.mode===mode&&x.blocks);
   addRecord({at:new Date().toISOString(),part,from:r.a,to:r.b,mode,score:p,finished:!!finished,blocks});
   startReview(r);
+  celebrate(p,blocks,before);
   $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+MODES[mode].name+"判定・"+(finished?"最後まで":"途中まで");
   const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${barOf(n.start)+1}小節目`)});
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
@@ -683,6 +721,48 @@ function loadRecs(){try{const a=JSON.parse(store.get("kite-records")||"[]");retu
 function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
 function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderProgressLink()}
 function fmtDate(iso){const d=new Date(iso);return isNaN(d)?"":`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
+// ---- ほめる画面（ハイスコア・合格・達人・ランクアップ） ----
+const TIER=[{min:85,key:"exc",name:"達人",icon:"★"},{min:70,key:"good",name:"合格",icon:"✓"},{min:50,key:"warn",name:"あと少し",icon:"○"},{min:0,key:"crit",name:"要練習",icon:"!"}];
+const tierOf=v=>v==null?null:TIER.findIndex(t=>v>=t.min);
+function celebrate(total,blocks,before){
+  const per={};for(const x of before)for(const [k,v] of Object.entries(x.blocks))(per[k]=per[k]||[]).push(v);
+  const recs=[],ups=[];
+  for(const [k,v] of Object.entries(blocks)){
+    const old=(per[k]||[]).slice().sort((a,b)=>b-a),best=old[0];
+    if((best==null&&v>=50)||(best!=null&&v>best))recs.push({k:+k,v,best});
+    const sOld=old.length>=2?old[1]:null,now=old.concat([v]).sort((a,b)=>b-a),sNew=now.length>=2?now[1]:null;
+    const tOld=tierOf(sOld),tNew=tierOf(sNew);
+    if(tNew!=null&&tNew<=1&&(tOld==null||tNew<tOld))ups.push({k:+k,from:tOld,to:tNew,v:sNew});
+  }
+  if(total<70&&!recs.length&&!ups.length)return;
+  const top=total>=85?{t:"達人級！",c:"exc",sub:"この区間を達人ランクで歌えた"}:total>=70?{t:"合格！",c:"good",sub:"この区間を合格ラインで歌えた"}:
+    ups.length?{t:"ランクアップ！",c:TIER[ups[0].to].key,sub:"ブロックのランクが上がった"}:{t:"ハイスコア！",c:"rec",sub:"自己ベストを更新した"};
+  const d=$("celebrate");d.className="cele c-"+top.c;
+  $("cTitle").textContent=top.t;$("cSub").textContent=top.sub;
+  const ti=TIER[tierOf(total)];$("cRank").textContent=`${ti.icon} ${ti.name}`;$("cRank").className="crank r-"+ti.key;
+  const ul=$("cList");ul.innerHTML="";
+  const bars=k=>`${(k-1)*4+1}〜${k*4}小節`;
+  for(const u of ups){const li=document.createElement("li");li.className="up";
+    li.innerHTML=`<span class="tag">RANK UP</span><span class="w"></span><b></b>`;
+    li.querySelector(".w").textContent=bars(u.k);
+    li.querySelector("b").textContent=`${u.from==null?"":TIER[u.from].name+" → "}${TIER[u.to].icon} ${TIER[u.to].name}`;ul.appendChild(li)}
+  for(const x of recs.sort((a,b)=>a.k-b.k)){const li=document.createElement("li");li.className="rec";
+    li.innerHTML=`<span class="tag">NEW RECORD</span><span class="w"></span><b></b>`;
+    li.querySelector(".w").textContent=bars(x.k);
+    li.querySelector("b").textContent=x.best==null?`${x.v}点`:`${x.best} → ${x.v}点`;ul.appendChild(li)}
+  // 紙吹雪
+  const cf=$("confetti");cf.innerHTML="";const cols=["#f2b630","#d8432f","#2a62d6","#0ca30c","#ef6a52","#8fb0ff"];
+  for(let i=0;i<36;i++){const e=document.createElement("i");e.style.left=Math.random()*100+"%";e.style.background=cols[i%cols.length];
+    e.style.animationDelay=(Math.random()*0.6)+"s";e.style.animationDuration=(1.6+Math.random()*1.2)+"s";e.style.transform=`rotate(${Math.random()*360}deg)`;cf.appendChild(e)}
+  // 点数をカウントアップ
+  const num=$("cScore");const t0=performance.now(),dur=900;
+  (function tick(t){const k=Math.min(1,(t-t0)/dur);num.textContent=Math.round(total*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(tick)})(t0);
+  // ファンファーレ
+  try{const a=AC(),t=a.currentTime+0.05,seq=total>=85?[72,76,79,84,88]:total>=70?[72,76,79,84]:[76,79,84];
+    seq.forEach((m,i)=>tone(m,t+i*0.11,i===seq.length-1?0.5:0.12,0.18,"square"))}catch(e){}
+  if(d.showModal)d.showModal();else d.setAttribute("open","");
+}
+$("cOk").addEventListener("click",()=>{const d=$("celebrate");if(d.close)d.close();else d.removeAttribute("open")});
 function msg(t,warn){const m=$("msg");m.textContent=t;m.classList.toggle("warn",!!warn)}
 
 // ---- render ----
