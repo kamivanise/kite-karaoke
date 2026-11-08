@@ -12,7 +12,7 @@
   --bg:#f3f6fa; --surface:#ffffff; --fg:#17202c; --muted:#5d6b7c; --line:#d6dee8;
   --accent:#d8432f; --accent-ink:#ffffff; --tail:#f2b630;
   --sky-top:#bfe0f6; --sky-bot:#eaf5fc; --grid:rgba(30,60,100,.13);
-  --note:#2e5f8f; --note-hit:#d8432f; --voice:#17202c; --voice-ok:#d8432f; --playhead:rgba(23,32,44,.55);
+  --note:#5d6b7c; --note-hit:#2a62d6; --voice:#17202c; --voice-ok:#2a62d6; --playhead:rgba(23,32,44,.55);
   --warn:#b26b00;
   --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
@@ -21,7 +21,7 @@
   --bg:#0f141b; --surface:#18202b; --fg:#e8eef5; --muted:#95a3b5; --line:#2b3644;
   --accent:#ef6a52; --accent-ink:#13171d; --tail:#f2c04e;
   --sky-top:#0d2238; --sky-bot:#183a59; --grid:rgba(200,225,255,.12);
-  --note:#7fb4e6; --note-hit:#ff8a6e; --voice:#f3f6fa; --voice-ok:#ffb35c; --playhead:rgba(232,238,245,.6);
+  --note:#9aa8b8; --note-hit:#5b8cff; --voice:#f3f6fa; --voice-ok:#5b8cff; --playhead:rgba(232,238,245,.6);
   --warn:#f0b04a; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--fg)}
@@ -840,7 +840,7 @@ function draw(beat){
   if(run&&beat<run.b0){c.fillStyle=ink;c.font=`48px ${css("--display")}`;c.textAlign="center";c.textBaseline="middle";c.fillText(String(Math.ceil(run.b0-beat)),W/2,H/2);c.textAlign="left"}
 }
 function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
-function kite(c,x,y,ok){c.save();c.translate(x,y);c.fillStyle=ok?css("--accent"):css("--muted");c.beginPath();c.moveTo(0,-11);c.lineTo(8,0);c.lineTo(0,11);c.lineTo(-8,0);c.closePath();c.fill();
+function kite(c,x,y,ok){c.save();c.translate(x,y);c.fillStyle=ok?css("--voice-ok"):css("--muted");c.beginPath();c.moveTo(0,-11);c.lineTo(8,0);c.lineTo(0,11);c.lineTo(-8,0);c.closePath();c.fill();
   c.strokeStyle=css("--tail");c.lineWidth=2;c.beginPath();c.moveTo(0,11);c.quadraticCurveTo(-8,20,-16,16);c.stroke();c.restore()}
 function esc(s){return s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
 
