@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive,noimageindex">
-<title>カイト 練習カラオケ</title>
+<title>カイト アルト練習</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
 <style>
 /* Layout: one column practice console — controls, a sky-colored pitch stage, the lyric line, then the score. */
@@ -74,17 +74,11 @@ footer a{color:inherit}
 <body>
 <div class="wrap">
   <header>
-    <h1>カイト<span>・</span>練習カラオケ</h1>
-    <div class="sub">混声三部合唱　♩=89　変ニ長調（♭5つ）</div>
+    <h1>カイト<span>・</span>アルト練習</h1>
+    <div class="sub">混声三部合唱 アルトパート　♩=89　変ニ長調（♭5つ）</div>
   </header>
 
   <div class="row">
-    <div class="group"><span class="label">パート</span>
-      <div class="seg" id="partSeg">
-        <button type="button" data-v="S" aria-pressed="true">ソプラノ</button>
-        <button type="button" data-v="A" aria-pressed="false">アルト</button>
-        <button type="button" data-v="M" aria-pressed="false">男声</button>
-      </div></div>
     <div class="group"><span class="label">判定</span>
       <div class="seg" id="modeSeg">
         <button type="button" data-v="easy" aria-pressed="true">やさしい（±半音）</button>
@@ -122,11 +116,6 @@ footer a{color:inherit}
   <details class="panel" id="lyEditor">
     <summary>歌詞を入れる（この端末だけに保存）</summary>
     <div class="msg">歌詞はこのページに入っていません。手元の楽譜を見て、音符1つにつき1かたまりを、スペースで区切って入れてください。のばす音は <code>ー</code>、歌詞のない音は <code>_</code> です。入れた歌詞はこのiPhoneのSafariの中にだけ保存され、ほかの人には見えません。</div>
-    <div class="seg" id="lySeg">
-      <button type="button" data-v="S" aria-pressed="true">ソプラノ</button>
-      <button type="button" data-v="A" aria-pressed="false">アルト</button>
-      <button type="button" data-v="M" aria-pressed="false">男声</button>
-    </div>
     <textarea id="lyText" class="ly" spellcheck="false" placeholder="例：あい う ー え お"></textarea>
     <div class="actions">
       <button class="btn primary" id="btnLy" type="button">歌詞を反映</button>
@@ -148,18 +137,13 @@ footer a{color:inherit}
 
   <details class="panel">
     <summary>音符データ（続きを入力する）</summary>
-    <div class="msg">入っているのは冒頭8小節のソプラノ・アルトだけです（男声はこの区間は休み）。楽譜の写真から読み取ったため、誤りがある可能性があります。</div>
+    <div class="msg">入っているのはアルトの冒頭8小節です（楽譜写真と1音ずつ照合済み）。9小節目以降はここに書き足せます。</div>
     <ul class="msg">
       <li>1音を <code>音名オクターブ:拍数</code> で書きます。例 <code>Db4:1.5</code>（レ♭・付点4分）</li>
       <li>拍数は4分音符=1。8分=0.5、16分=0.25、付点4分=1.5、2分=2</li>
       <li>休符は <code>r:0.5</code>。<code>|</code> は小節線の目印で、無視されます</li>
       <li>真ん中のドが <code>C4</code>。♭は <code>b</code>、♯は <code>#</code>（例 <code>Gb4</code>、<code>F#3</code>）</li>
     </ul>
-    <div class="seg" id="edSeg">
-      <button type="button" data-v="S" aria-pressed="true">ソプラノ</button>
-      <button type="button" data-v="A" aria-pressed="false">アルト</button>
-      <button type="button" data-v="M" aria-pressed="false">男声</button>
-    </div>
     <textarea id="edText" spellcheck="false"></textarea>
     <div class="actions">
       <button class="btn primary" id="btnApply" type="button">反映する</button>
@@ -175,16 +159,6 @@ footer a{color:inherit}
 (()=>{
 const BPM=89;
 const SAMPLE={
-S:`# 1-4
-Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
-Db4:0.5 Eb4:0.5 F4:0.5 Ab4:0.5 Bb4:1 F4:1 |
-C5:1.5 Db5:0.5 Db5:1 r:0.5 Db5:0.5 |
-# 5-8
-C5:0.5 Bb4:0.5 Ab4:0.5 Gb4:0.5 F4:1 r:0.5 Eb4:0.25 F4:0.25 |
-Gb4:1.5 F4:0.25 Eb4:0.25 Db4:1 r:0.5 Bb3:0.25 Db4:0.25 |
-Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |`,
 A:`# 1-4
 Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 F4:1 r:0.5 Eb4:0.5 |
@@ -194,13 +168,11 @@ F4:1.5 F4:0.5 F4:1 r:0.5 Bb4:0.5 |
 Ab4:0.5 Gb4:0.5 F4:0.5 Eb4:0.5 Db4:1 r:0.5 C4:0.25 Db4:0.25 |
 Eb4:1.5 Db4:0.25 C4:0.25 Bb3:1 r:0.5 Bb3:0.25 Db4:0.25 |
 Eb4:1 F4:0.25 Eb4:0.25 Db4:0.5 Eb4:1.5 Db4:0.5 |
-Db4:2 r:2 |`,
-M:`# 1-8 は休み（8小節目の最後に入る音は未入力）
-r:32`
+Db4:2 r:2 |`
 };
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const texts={},lyrics={};
-for(const p of "SAM"){texts[p]=store.get("kite-part-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
+for(const p of "A"){texts[p]=store.get("kite-part-"+p)||SAMPLE[p];lyrics[p]=store.get("kite-lyrics-"+p)||""}
 
 const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 function parse(text){
@@ -227,7 +199,7 @@ function build(p){
   return s;
 }
 
-let part="S",mode="easy";
+const part="A";let mode="easy";
 let song=build(part);
 const $=id=>document.getElementById(id);
 const cv=$("cv"),ctx2=cv.getContext("2d");
@@ -431,20 +403,17 @@ function esc(s){return s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt
 function seg(id,cb){const el=$(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v)})}
 function reload(){stopAll();song=build(part);resetScore();lastLy=null}
-seg("partSeg",v=>{part=v;reload();$("scoreNum").textContent="--";$("scoreLbl").textContent="まだ歌っていません"});
 seg("modeSeg",v=>{mode=v});
 
-let lyPart="S";
+const lyPart="A";
 function lyCount(){const n=parse(texts[lyPart]).notes.length,k=lyrics[lyPart].trim()?lyrics[lyPart].trim().split(/\s+/).length:0;
   $("lyMsg").textContent=`音符 ${n} 個／歌詞 ${k} 個`}
-seg("lySeg",v=>{lyPart=v;$("lyText").value=lyrics[v];lyCount()});
-$("lyText").value=lyrics.S;lyCount();
+$("lyText").value=lyrics.A;lyCount();
 $("btnLy").addEventListener("click",()=>{lyrics[lyPart]=$("lyText").value;store.set("kite-lyrics-"+lyPart,lyrics[lyPart]);if(lyPart===part)reload();lyCount();
   $("lyMsg").textContent+="　反映しました"});
 
-let edPart="S";
-seg("edSeg",v=>{edPart=v;$("edText").value=texts[v];$("edMsg").textContent="入力はこの端末のブラウザにだけ保存されます。"});
-$("edText").value=texts.S;
+const edPart="A";
+$("edText").value=texts.A;
 $("btnApply").addEventListener("click",()=>{
   const t=$("edText").value,r=parse(t);
   if(r.errs.length){$("edMsg").textContent="読めない箇所があります："+r.errs.slice(0,4).join("、");return}
