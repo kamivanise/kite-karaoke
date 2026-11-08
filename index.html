@@ -43,7 +43,10 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 .rangeSel{display:flex;align-items:center;gap:6px}
 select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 .stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
-canvas{display:block;width:100%;height:260px}
+canvas{display:block;width:100%;height:260px;touch-action:pan-y}
+.revbox{display:flex;align-items:center;gap:8px}
+.revbox input{flex:1;min-width:0}
+.revbtn{width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
 .lyric{font-family:var(--display);font-size:1.6rem;min-height:2.6rem;line-height:1.5;text-align:center;letter-spacing:.06em;color:var(--muted);word-break:break-all}
 .lyric .done{color:var(--accent)} .lyric .now{color:var(--fg)}
 .lyric small{font-family:var(--body);font-size:.9rem}
@@ -158,6 +161,16 @@ footer a{color:inherit}
   </dialog>
 
   <div class="stage"><canvas id="cv" aria-label="音程バー"></canvas></div>
+  <div class="revbox" id="revBox" hidden>
+    <button type="button" class="revbtn" id="revPrev" aria-label="前の小節へ">◀</button>
+    <input type="range" id="rev" aria-label="振り返る位置">
+    <button type="button" class="revbtn" id="revNext" aria-label="次の小節へ">▶</button>
+    <button type="button" class="help" data-help="hRev" aria-expanded="false" aria-label="説明を見る">?</button>
+  </div>
+  <div class="helptext" id="hRev" hidden><ul>
+    <li>歌い終わると、バーを指で左右に動かして見返せる（下のつまみや ◀ ▶ でも動く）</li>
+    <li>音符の上の数字は、その音の平均のズレ（半音単位。＋は高い、−は低い）。判定の幅を超えたものは色が変わる</li>
+    <li>次に歌い始めると消える</li></ul></div>
   <div class="lyric" id="lyric" aria-live="polite"></div>
 
   <div class="actions">
@@ -638,7 +651,7 @@ function fillBars(){
     for(let i=1;i<=n;i++){const o=document.createElement("option");o.value=i;o.textContent=i+"小節";el.appendChild(o)}el.value=v}
 }
 let bf=[],bh=[],reached=-1;
-function resetScore(){frames=0;hits=0;trail=[];bf=new Array(25).fill(0);bh=new Array(25).fill(0);reached=-1;for(const n of song.notes){n.frames=0;n.hit=0}}
+function resetScore(){frames=0;hits=0;trail=[];bf=new Array(25).fill(0);bh=new Array(25).fill(0);reached=-1;for(const n of song.notes){n.frames=0;n.hit=0;n.dsum=0;n.dcnt=0}endReview()}
 function noteAt(beat){for(const n of song.notes)if(beat>=n.start&&beat<n.start+n.dur)return n;return null}
 function judge(beat,midi){
   if(run&&(beat<run.b0||beat>=run.b1))return;
@@ -647,7 +660,8 @@ function judge(beat,midi){
   if(beat>reached)reached=beat;
   if(n){const k=Math.min(24,Math.floor(barOf(n.start)/4));n.frames++;frames++;bf[k]++;
     if(shown!=null&&Math.abs(shown-n.midi)*100<=tol()){ok=true;n.hit++;hits++;bh[k]++}}
-  trail.push({beat,midi:shown,ok});if(trail.length>4000)trail.shift();
+  if(n&&shown!=null){n.dsum+=shown-n.midi;n.dcnt++}
+  trail.push({beat,midi:shown,ok});if(trail.length>30000)trail.shift();
 }
 
 async function startMic(){
@@ -692,6 +706,7 @@ function showScore(finished){
     if(!finished&&reached<barEnd(b-1)-0.05)continue;
     blocks[k+1]=Math.round(bh[k]/bf[k]*100)}
   addRecord({at:new Date().toISOString(),part,from:r.a,to:r.b,mode,score:p,finished:!!finished,blocks});
+  startReview(r);
   $("scoreLbl").textContent=`${r.a}〜${r.b}小節・`+MODES[mode].name+"判定・"+(finished?"最後まで":"途中まで");
   const weak=[];song.notes.forEach((n,i)=>{if(n.frames>3&&n.hit/n.frames<0.4)weak.push(n.lyric||`${barOf(n.start)+1}小節目`)});
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
@@ -756,16 +771,29 @@ function frame(){
     }
     if(beat>run.b1+0.5)stopAll(true);
   }
-  draw(run?run.b0+t/run.spb:(trail.length?trail[trail.length-1].beat:rng().b0-0.5));
+  draw(run?run.b0+t/run.spb:viewBeat!=null?viewBeat:(trail.length?trail[trail.length-1].beat:rng().b0-0.5));
   requestAnimationFrame(frame);
 }
+// ---- 振り返り（歌い終わったあと、左右に動かして見返す） ----
+let viewBeat=null,lastPpb=60,revR=null;
+function startReview(r){if(!trail.length)return;revR=r;viewBeat=r.b0;const sl=$("rev");
+  sl.min=r.b0;sl.max=Math.max(r.b0,r.b1-0.01);sl.step=0.05;sl.value=r.b0;$("revBox").hidden=false}
+function endReview(){viewBeat=null;revR=null;const b=$("revBox");if(b)b.hidden=true}
+function setView(v){if(!revR)return;viewBeat=Math.max(revR.b0,Math.min(revR.b1,v));$("rev").value=viewBeat}
+$("rev").addEventListener("input",e=>{if(revR)viewBeat=+e.target.value});
+{let sx=null,sv=0;
+  cv.addEventListener("pointerdown",e=>{if(run||viewBeat==null)return;sx=e.clientX;sv=viewBeat;cv.setPointerCapture(e.pointerId)});
+  cv.addEventListener("pointermove",e=>{if(sx==null)return;setView(sv-(e.clientX-sx)/lastPpb)});
+  const up=()=>{sx=null};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);}
+$("revPrev").addEventListener("click",()=>{if(!revR)return;const i=barOf(viewBeat+1e-6);setView(song.bars[Math.max(0,i-(viewBeat-song.bars[i]<0.1?1:0))]||revR.b0)});
+$("revNext").addEventListener("click",()=>{if(!revR)return;const i=barOf(viewBeat+1e-6);setView(barEnd(i))});
 function draw(beat){
   if(!W)resize();
   const c=ctx2;c.setTransform(dpr,0,0,dpr,0,0);
   const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,css("--sky-top"));g.addColorStop(1,css("--sky-bot"));
   c.fillStyle=g;c.fillRect(0,0,W,H);
   const [lo,hi]=range(),pad=14,y=m=>pad+(hi-m)/(hi-lo)*(H-2*pad),lane=(H-2*pad)/(hi-lo);
-  const ppb=Math.max(48,Math.min(80,W/9)),px=W*0.22,x=b=>px+(b-beat)*ppb;
+  const ppb=Math.max(48,Math.min(80,W/9)),px=W*0.22,x=b=>px+(b-beat)*ppb;lastPpb=ppb;
   c.strokeStyle=css("--grid");c.lineWidth=1;
   for(const b of song.bars){const xx=x(b);if(xx<-2||xx>W+2)continue;c.beginPath();c.moveTo(xx+.5,0);c.lineTo(xx+.5,H);c.stroke()}
   {const r=run||rng(),xa=x(r.b0),xb=x(r.b1);c.fillStyle=css("--bg");c.globalAlpha=.55;
@@ -781,10 +809,15 @@ function draw(beat){
     const k=song.notes.indexOf(n),off=n.dur<0.5&&k%2?12:0;
     c.fillStyle=solCol;c.font=`700 11px ${css("--body")}`;c.textBaseline="top";
     c.fillText(noteSol(n),x0+2,yy+h+2+off);
+    if(!run&&viewBeat!=null&&n.dcnt>2){const d=n.dsum/n.dcnt,bad=Math.abs(d)*100>tol();
+      c.fillStyle=bad?css("--warn"):css("--muted");c.textBaseline="bottom";
+      c.fillText((d>0?"+":d<0?"−":"±")+Math.abs(d).toFixed(1),x0+2,yy-2-off);c.textBaseline="top"}
     c.font=`700 13px ${css("--body")}`;c.textBaseline="bottom";
   }
   // current target note badge
   const cur=noteAt(beat);
+  if(!run&&viewBeat!=null){const bi=barOf(beat+1e-6)+1;c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,W-92,8,84,26,8);c.fill();c.globalAlpha=1;
+    c.fillStyle=ink;c.font=`700 12px ${css("--body")}`;c.textBaseline="middle";c.textAlign="right";c.fillText(`${bi}小節`,W-16,21);c.textAlign="left";c.textBaseline="bottom"}
   if(cur){c.fillStyle=css("--surface");c.globalAlpha=.85;rr(c,8,8,104,34,8);c.fill();c.globalAlpha=1;
     c.fillStyle=ink;c.font=`11px ${css("--body")}`;c.textBaseline="top";c.fillText("いまの音",16,11);
     c.font=`700 15px ${css("--body")}`;c.fillText(solLong(cur),16,23);c.textBaseline="bottom"}
