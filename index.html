@@ -109,6 +109,9 @@ dialog::backdrop{background:rgba(10,16,24,.45)}
 .sheet label{color:inherit}
 .sheet input[type=range]{width:100%}
 .sheet .meter{width:100%}
+.vols{display:grid;grid-template-columns:auto 1fr 2ch;gap:10px 12px;align-items:center;font-size:.88rem}
+.vols input{width:100%}
+.vols b{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
 .meter{width:120px;height:10px;border-radius:5px;background:var(--line);overflow:hidden;position:relative}
 .meter i{display:block;height:100%;width:0;background:var(--accent)}
 .meter b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg)}
@@ -142,7 +145,7 @@ footer a{color:inherit}
     <select id="barFrom" aria-label="開始小節"></select><span>〜</span><select id="barTo" aria-label="終了小節"></select>
   </div>
 
-  <input type="hidden" id="guide" value="1"><input type="hidden" id="acc" value="1"><input type="hidden" id="oth" value="1"><input type="hidden" id="oct" value="0">
+  <input type="hidden" id="oct" value="0">
   <dialog id="celebrate" class="cele" aria-labelledby="cTitle">
     <div class="cbox">
       <div class="confetti" id="confetti" aria-hidden="true"></div>
@@ -178,23 +181,15 @@ footer a{color:inherit}
         <div class="tabs" id="modeSeg">
           <button type="button" data-v="easy">やさしい</button><button type="button" data-v="normal">ふつう</button><button type="button" data-v="hard">むずかしい</button>
         </div></section>
-      <section><h3>お手本の音</h3>
-        <div class="tabs" id="guideSeg">
-          <button type="button" data-v="1">あり</button><button type="button" data-v="0">なし</button>
-        </div></section>
-      <section><h3>伴奏<button type="button" class="help" data-help="hAcc" aria-expanded="false" aria-label="説明を見る">?</button></h3>
-        <div class="helptext" id="hAcc" hidden><ul>
-          <li>3つのパートの音から作った和音を、ピアノに近い音で鳴らす（原曲のピアノ譜そのものではない）</li>
-          <li>マイクで歌うときは、イヤホンで聴かないとマイクが伴奏を拾う</li></ul></div>
-        <div class="tabs" id="accSeg">
-          <button type="button" data-v="1">あり</button><button type="button" data-v="0">なし</button>
-        </div></section>
-      <section><h3>ほかのパート<button type="button" class="help" data-help="hOth" aria-expanded="false" aria-label="説明を見る">?</button></h3>
-        <div class="helptext" id="hOth" hidden><ul>
-          <li>自分以外のパートの旋律を、小さめの音で一緒に鳴らす</li>
-          <li>自分が休みの小節で、いまどこかをつかみやすくなる</li></ul></div>
-        <div class="tabs" id="othSeg">
-          <button type="button" data-v="1">あり</button><button type="button" data-v="0">なし</button>
+      <section><h3>音量<button type="button" class="help" data-help="hVol" aria-expanded="false" aria-label="説明を見る">?</button></h3>
+        <div class="helptext" id="hVol" hidden><ul>
+          <li>お手本：自分のパートの旋律／伴奏：3つのパートの音から作った和音（原曲のピアノ譜そのものではない）／ほかのパート：自分以外のパートの旋律</li>
+          <li>左いっぱいで消える。歌っている途中で動かしても、すぐ変わる</li>
+          <li>マイクで歌うときは、イヤホンで聴かないとマイクがこれらの音を拾う</li></ul></div>
+        <div class="vols">
+          <label for="volGuide">お手本</label><input type="range" id="volGuide" min="0" max="10" step="1" value="5"><b id="vGuide"></b>
+          <label for="volAcc">伴奏</label><input type="range" id="volAcc" min="0" max="10" step="1" value="5"><b id="vAcc"></b>
+          <label for="volOth">ほかのパート</label><input type="range" id="volOth" min="0" max="10" step="1" value="5"><b id="vOth"></b>
         </div></section>
       <section><h3>オクターブ違い<button type="button" class="help" data-help="hOct" aria-expanded="false" aria-label="説明を見る">?</button></h3>
         <div class="helptext" id="hOct" hidden><ul>
@@ -326,32 +321,34 @@ const solLong=n=>(n.midi<60?"低い":n.midi>=72?"高い":"")+noteSol(n);
 let ac=null;
 function AC(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state!=="running")ac.resume();return ac}
 let scheduled=[];
-function tone(midi,t0,dur,vol,type){
+// 音の種類ごとの音量（つまみの値 0〜10。5 が標準。途中で動かしてもすぐ効く）
+const VOL={guide:{id:"volGuide",key:"kite-vol-guide",node:null},acc:{id:"volAcc",key:"kite-vol-acc",node:null},oth:{id:"volOth",key:"kite-vol-oth",node:null}};
+const volGain=k=>(+$(VOL[k].id).value)/5;
+function bus(k){const a=AC(),v=VOL[k];if(!v.node||v.node.context!==a){v.node=a.createGain();v.node.connect(a.destination)}v.node.gain.value=volGain(k);return v.node}
+function tone(midi,t0,dur,vol,type,dest){
   const a=AC(),o=a.createOscillator(),g=a.createGain();
   o.type=type||"triangle";o.frequency.value=440*Math.pow(2,(midi-69)/12);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+0.02);
   g.gain.setValueAtTime(vol,Math.max(t0+0.03,t0+dur-0.06));g.gain.linearRampToValueAtTime(0,t0+dur);
-  o.connect(g).connect(a.destination);o.start(t0);o.stop(t0+dur+0.05);scheduled.push(o);
+  o.connect(g).connect(dest||a.destination);o.start(t0);o.stop(t0+dur+0.05);scheduled.push(o);
 }
 function scheduleGuide(t0,spb,b0,b1){
-  if($("guide").value!=="1")return;
   for(const n of song.notes){if(n.start<b0||n.start>=b1)continue;
-    tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.2)}
+    tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.2,"triangle",bus("guide"))}
 }
 // ピアノに近い音（打鍵して減衰する）
-function piano(midi,t0,dur,vol){
+function piano(midi,t0,dur,vol){const dest=bus("acc");
   const a=AC(),f=440*Math.pow(2,(midi-69)/12),g=a.createGain(),o1=a.createOscillator(),o2=a.createOscillator(),g2=a.createGain();
   o1.type="triangle";o1.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=0.25;
   const end=t0+Math.max(0.15,dur);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+0.006);
   g.gain.exponentialRampToValueAtTime(vol*0.35,t0+Math.min(0.35,dur));g.gain.exponentialRampToValueAtTime(0.0005,end);
-  o1.connect(g);o2.connect(g2).connect(g);g.connect(a.destination);
+  o1.connect(g);o2.connect(g2).connect(g);g.connect(dest);
   for(const o of [o1,o2]){o.start(t0);o.stop(end+0.02);scheduled.push(o)}
 }
 const allParts=()=>{const o={};for(const p of PARTS())o[p]=p===part?song:parse(cur.parts[p]);return o};
 // 伴奏：3パートで同時に鳴っている音から、拍ごとに和音と低音を作る
 function scheduleAccomp(t0,spb,b0,b1){
-  if($("acc").value!=="1")return;
   const ps=Object.values(allParts()),place=(pc,lo)=>{let m=lo+((pc-lo)%12+12)%12;return m};
   let prevBass=null;
   for(let b=Math.ceil(b0-1e-6);b<b1-1e-6;b++){
@@ -367,10 +364,9 @@ function scheduleAccomp(t0,spb,b0,b1){
 }
 // ほかのパートの旋律を小さめに
 function scheduleOthers(t0,spb,b0,b1){
-  if($("oth").value!=="1")return;
   for(const [p,sg] of Object.entries(allParts())){if(p===part)continue;
     for(const n of sg.notes){if(n.start<b0||n.start>=b1)continue;
-      tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.07,"sine")}}
+      tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.14,"sine",bus("oth"))}}
 }
 function clicks(t0,spb){for(let i=0;i<4;i++)tone(i?81:88,t0+i*spb,0.06,0.3,"square")}
 
@@ -597,11 +593,13 @@ for(const id of ["barFrom","barTo"])$(id).addEventListener("change",()=>{stopAll
 seg("modeSeg",v=>{mode=v;store.set("kite-mode",v);renderProgressLink();showNow()});
 function mark(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v?"true":"false"))}
 function showNow(){$("curPart").textContent=PART_NAME[part];$("curMode").textContent=MODES[mode].name}
-{for(const [id,key] of [["guide","kite-guide"],["oct","kite-oct"],["acc","kite-acc"],["oth","kite-oth"]]){const v=store.get(key);if(v==="0"||v==="1")$(id).value=v}}
-mark("modeSeg",mode);mark("partSeg",part);mark("guideSeg",$("guide").value);mark("octSeg",$("oct").value);mark("accSeg",$("acc").value);mark("othSeg",$("oth").value);showNow();
-seg("guideSeg",v=>{$("guide").value=v;store.set("kite-guide",v)});
-seg("accSeg",v=>{$("acc").value=v;store.set("kite-acc",v)});
-seg("othSeg",v=>{$("oth").value=v;store.set("kite-oth",v)});
+{const v=store.get("kite-oct");if(v==="0"||v==="1")$("oct").value=v}
+for(const [k,o] of Object.entries(VOL)){const el=$(o.id),old={guide:"kite-guide",acc:"kite-acc",oth:"kite-oth"}[k];
+  let v=store.get(o.key);if(v==null&&store.get(old)==="0")v="0";if(v!=null&&+v>=0&&+v<=10)el.value=v;
+  const show=()=>{$("v"+o.id.slice(3)).textContent=el.value};show();
+  el.addEventListener("input",()=>{show();store.set(o.key,el.value);if(o.node)o.node.gain.value=volGain(k)})}
+mark("modeSeg",mode);mark("partSeg",part);mark("octSeg",$("oct").value);showNow();
+
 seg("octSeg",v=>{$("oct").value=v;store.set("kite-oct",v)});
 const dlg=$("settings");
 function openSet(){if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
