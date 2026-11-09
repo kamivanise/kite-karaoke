@@ -3,6 +3,7 @@
    曲を足すときは、このファイルをまねて songs/ に1つ作り、index.html の <script src="songs/..."> に1行足す。 */
 (window.KARA_SONGS=window.KARA_SONGS||[]).push({
   id:"kite", title:"カイト", bpm:89,
+  marks:{A:9,B:17,C:26,D:35,E:43,F:51,G:60,H:69,I:81,J:85,K:96},  // 練習番号（その記号が付いた小節）
   parts:{
 S:`# 1-6
 Db4:1.5 Ab4:0.5 Ab4:1 r:0.5 Db4:0.5 |
