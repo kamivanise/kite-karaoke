@@ -170,7 +170,7 @@ footer a{color:inherit}
       <div class="shead"><h2 id="setTitle">設定</h2><button type="button" class="close" id="btnClose" aria-label="閉じる">×</button></div>
       <section><h3>パート</h3>
         <div class="tabs" id="partSeg">
-          <button type="button" data-v="S">ソプラノ</button><button type="button" data-v="A">アルト</button><button type="button" data-v="M">男声</button>
+          <button type="button" data-v="S">ソプラノ</button><button type="button" data-v="A">アルト</button><button type="button" data-v="T">テノール</button><button type="button" data-v="B">バス</button><button type="button" data-v="M">男声</button>
         </div></section>
       <section><h3>判定<button type="button" class="help" data-help="hMode" aria-expanded="false" aria-label="説明を見る">?</button></h3>
         <div class="helptext" id="hMode" hidden><ul>
@@ -245,13 +245,14 @@ footer a{color:inherit}
 </div>
 
 <script src="songs/kite.js"></script>
+<script src="songs/daichi.js"></script>
 <script>
 (()=>{
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const SONGS=window.KARA_SONGS||[];
 let songId=store.get("kara-song");if(!SONGS.some(x=>x.id===songId))songId=(SONGS[0]||{}).id;
 let cur=SONGS.find(x=>x.id===songId);
-const PARTS=()=>"SAM".split("").filter(p=>cur.parts[p]);
+const PARTS=()=>"SATBM".split("").filter(p=>cur.parts[p]);
 const recSong=x=>x.song||"kite";
 
 
@@ -454,7 +455,7 @@ function showScore(finished){
   msg(p>=80?"音程はよく合っています。":weak.length?`合いにくかったところ：${[...new Set(weak)].slice(0,8).join("・")}`:"もう一度、お手本を聴いてから歌ってみましょう。");
 }
 // ---- 記録（この端末のブラウザだけに保存） ----
-const PART_NAME={S:"ソプラノ",A:"アルト",M:"男声"};
+const PART_NAME={S:"ソプラノ",A:"アルト",T:"テノール",B:"バス",M:"男声"};
 function loadRecs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function saveRecs(a){store.set("kite-records",JSON.stringify(a.slice(-500)))}
 function addRecord(rec){const a=loadRecs();a.push(rec);saveRecs(a);renderProgressLink()}
@@ -629,7 +630,7 @@ $("btnGuide").addEventListener("click",startGuideOnly);
 $("btnStop").addEventListener("click",()=>stopAll(false));
 function writeMeta(){let all={};try{all=JSON.parse(store.get("kara-meta")||"{}")||{}}catch(e){}
   for(const so of SONGS){const parts={};let nb=1;
-    for(const p of "SAM"){if(!so.parts[p])continue;const sg=parse(so.parts[p]);nb=Math.max(nb,Math.ceil(sg.bars.length/4));
+    for(const p of "SATBM"){if(!so.parts[p])continue;const sg=parse(so.parts[p]);nb=Math.max(nb,Math.ceil(sg.bars.length/4));
       const has=new Array(Math.ceil(sg.bars.length/4)).fill(false);
       sg.notes.forEach(n=>{let i=0;while(i+1<sg.bars.length&&sg.bars[i+1]<=n.start+1e-6)i++;has[Math.floor(i/4)]=true});parts[p]=has}
     all[so.id]={title:so.title,nb,bars:parse(so.parts[Object.keys(so.parts)[0]]).bars.length,parts}}

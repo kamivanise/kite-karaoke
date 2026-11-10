@@ -100,6 +100,8 @@ details summary{cursor:pointer;font-weight:700}
   <div class="tabs" role="tablist" id="partTabs">
     <button type="button" role="tab" data-v="S">ソプラノ</button>
     <button type="button" role="tab" data-v="A">アルト</button>
+    <button type="button" role="tab" data-v="T">テノール</button>
+    <button type="button" role="tab" data-v="B">バス</button>
     <button type="button" role="tab" data-v="M">男声</button>
   </div>
   <div class="tabs" role="tablist" id="modeTabs">
@@ -189,7 +191,7 @@ details summary{cursor:pointer;font-weight:700}
 (()=>{
 const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const PART={S:"ソプラノ",A:"アルト",M:"男声"},MODE={easy:"やさしい",normal:"ふつう",hard:"むずかしい"};
+const PART={S:"ソプラノ",A:"アルト",T:"テノール",B:"バス",M:"男声"},MODE={easy:"やさしい",normal:"ふつう",hard:"むずかしい"};
 let part=store.get("kite-voice");if(!PART[part])part="A";
 let mode=store.get("kite-mode");if(!MODE[mode])mode="easy";
 function recs(){try{const a=JSON.parse(store.get("kite-records")||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
