@@ -191,6 +191,14 @@ footer a{color:inherit}
           <label for="volAcc">伴奏</label><input type="range" id="volAcc" min="0" max="10" step="1" value="5"><b id="vAcc"></b>
           <label for="volOth">ほかのパート</label><input type="range" id="volOth" min="0" max="10" step="1" value="5"><b id="vOth"></b>
         </div></section>
+      <section><h3>聴き方<button type="button" class="help" data-help="hEcho" aria-expanded="false" aria-label="説明を見る">?</button></h3>
+        <div class="helptext" id="hEcho" hidden><ul>
+          <li>イヤホン：いちばん正確。お手本や伴奏の音がマイクに入らない</li>
+          <li>スピーカー：ブラウザの「エコー除去」で、このページが鳴らした音をマイクから取り除いてから判定する。完全には消えないので、点数はイヤホンより甘くなりやすい</li>
+          <li>スピーカーで正しく測れているかは、マイクで歌うを押して声を出さずに聴くと分かる。点数がほぼ0なら大丈夫</li></ul></div>
+        <div class="tabs" id="echoSeg">
+          <button type="button" data-v="0">イヤホン</button><button type="button" data-v="1">スピーカー</button>
+        </div></section>
       <section><h3>オクターブ違い<button type="button" class="help" data-help="hOct" aria-expanded="false" aria-label="説明を見る">?</button></h3>
         <div class="helptext" id="hOct" hidden><ul>
           <li>「正解にする」で、1オクターブ上や下で歌っても正解になる</li>
@@ -228,7 +236,7 @@ footer a{color:inherit}
   </div>
   <div class="helptext" id="hSing" hidden><ul>
     <li>4拍のカウントのあとに始まり、選んだ小節の終わりで止まる</li>
-    <li>お手本の音をスピーカーで鳴らすとマイクが拾う。イヤホンを使うか「お手本の音：なし」に</li>
+    <li>スピーカーで聴くときは、⚙の「聴き方」を「スピーカー」に</li>
     <li>バーの上の点が自分の声。合っていると青くなる</li>
     <li>演奏が遅くなる・音が低く聞こえるときは、パソコンの音の設定が原因のことが多い。Bluetoothのイヤホン（マイク付き）を外して有線かスピーカーにする、ブラウザを開き直す、Windowsの「サウンド」設定で再生と録音の形式を同じ（例 48000 Hz）にする</li></ul></div>
 
@@ -419,7 +427,7 @@ async function startMic(){
   stopAll();
   let a=AC(); // create inside the tap so iOS allows sound
   let stream;
-  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:echoOn(),noiseSuppression:false,autoGainControl:false}})}
   catch(e){msg("マイクが使えませんでした（"+e.name+"）。Safariの設定でマイクを許可するか、下の「録音ファイルで採点する」を使ってください。",true);return}
   const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   if(!isIOS){try{await ac.close()}catch(e){}ac=null;a=AC()} // マイクを開くと音の装置の設定が変わる機器があるため、作り直して合わせる
@@ -620,6 +628,8 @@ for(const [k,o] of Object.entries(VOL)){const el=$(o.id),old={guide:"kite-guide"
 mark("modeSeg",mode);mark("partSeg",part);mark("octSeg",$("oct").value);showNow();
 
 seg("octSeg",v=>{$("oct").value=v;store.set("kite-oct",v)});
+let echo=store.get("kite-echo")==="1"?"1":"0";function echoOn(){return echo==="1"}
+mark("echoSeg",echo);seg("echoSeg",v=>{echo=v;store.set("kite-echo",v)});
 const dlg=$("settings");
 function openSet(){if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
 function closeSet(){if(dlg.close)dlg.close();else dlg.removeAttribute("open")}
