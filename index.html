@@ -229,7 +229,8 @@ footer a{color:inherit}
   <div class="helptext" id="hSing" hidden><ul>
     <li>4拍のカウントのあとに始まり、選んだ小節の終わりで止まる</li>
     <li>お手本の音をスピーカーで鳴らすとマイクが拾う。イヤホンを使うか「お手本の音：なし」に</li>
-    <li>バーの上の点が自分の声。合っていると赤くなる</li></ul></div>
+    <li>バーの上の点が自分の声。合っていると青くなる</li>
+    <li>演奏が遅くなる・音が低く聞こえるときは、パソコンの音の設定が原因のことが多い。Bluetoothのイヤホン（マイク付き）を外して有線かスピーカーにする、ブラウザを開き直す、Windowsの「サウンド」設定で再生と録音の形式を同じ（例 48000 Hz）にする</li></ul></div>
 
   <div class="panel">
     <div class="score"><b id="scoreNum">--</b><span id="scoreLbl" class="chip">まだ歌っていません</span></div>
@@ -326,7 +327,12 @@ let scheduled=[];
 const VOL={guide:{id:"volGuide",key:"kite-vol-guide",node:null},acc:{id:"volAcc",key:"kite-vol-acc",node:null},oth:{id:"volOth",key:"kite-vol-oth",node:null}};
 const volGain=k=>(+$(VOL[k].id).value)/5;
 function bus(k){const a=AC(),v=VOL[k];if(!v.node||v.node.context!==a){v.node=a.createGain();v.node.connect(a.destination)}v.node.gain.value=volGain(k);return v.node}
-function tone(midi,t0,dur,vol,type,dest){
+// 少し先の音だけを用意する（端末の負担を減らす）。残りは frame() で順に用意する
+let pending=[];const AHEAD=1.5;
+function later(t0,fn){if(t0>AC().currentTime+AHEAD){pending.push({t0,fn});return true}return false}
+function flushPending(){if(!pending.length||!ac)return;const lim=ac.currentTime+AHEAD,keep=[];
+  for(const p of pending){if(p.t0<=lim)p.fn();else keep.push(p)}pending=keep}
+function tone(midi,t0,dur,vol,type,dest){if(later(t0,()=>tone(midi,t0,dur,vol,type,dest)))return;
   const a=AC(),o=a.createOscillator(),g=a.createGain();
   o.type=type||"triangle";o.frequency.value=440*Math.pow(2,(midi-69)/12);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+0.02);
@@ -338,7 +344,7 @@ function scheduleGuide(t0,spb,b0,b1){
     tone(n.midi,t0+(n.start-b0)*spb,Math.max(0.08,Math.min(n.dur,b1-n.start)*spb*0.95),0.2,"triangle",bus("guide"))}
 }
 // ピアノに近い音（打鍵して減衰する）
-function piano(midi,t0,dur,vol){const dest=bus("acc");
+function piano(midi,t0,dur,vol){if(later(t0,()=>piano(midi,t0,dur,vol)))return;const dest=bus("acc");
   const a=AC(),f=440*Math.pow(2,(midi-69)/12),g=a.createGain(),o1=a.createOscillator(),o2=a.createOscillator(),g2=a.createGain();
   o1.type="triangle";o1.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;g2.gain.value=0.25;
   const end=t0+Math.max(0.15,dur);
@@ -407,10 +413,12 @@ function judge(beat,midi){
 
 async function startMic(){
   stopAll();
-  const a=AC(); // create inside the tap so iOS allows sound
+  let a=AC(); // create inside the tap so iOS allows sound
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
   catch(e){msg("マイクが使えませんでした（"+e.name+"）。Safariの設定でマイクを許可するか、下の「録音ファイルで採点する」を使ってください。",true);return}
+  const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(!isIOS){try{await ac.close()}catch(e){}ac=null;a=AC()} // マイクを開くと音の装置の設定が変わる機器があるため、作り直して合わせる
   await a.resume();
   const src=a.createMediaStreamSource(stream),an=a.createAnalyser();an.fftSize=2048;src.connect(an);
   const s=spb(),start0=a.currentTime+0.3+4*s,r=rng();
@@ -427,7 +435,7 @@ function startGuideOnly(){
 
 function stopAll(finished){
   if(!run)return;
-  for(const o of scheduled){try{o.stop()}catch(e){}}scheduled=[];
+  pending=[];for(const o of scheduled){try{o.stop()}catch(e){}}scheduled=[];
   if(run.stream)run.stream.getTracks().forEach(t=>t.stop());
   if(run.src){try{run.src.stop()}catch(e){}}
   const kind=run.kind;run=null;uiRunning(false);$("lvl").style.width="0";
@@ -513,9 +521,15 @@ function range(){
   let lo=Infinity,hi=-Infinity;for(const n of song.notes){lo=Math.min(lo,n.midi);hi=Math.max(hi,n.midi)}
   return[lo-4,hi+4];
 }
+let speedChk=null;
 function frame(){
   const a=ac;let t=-1;
+  flushPending();
   if(run&&a){
+    if(!run.sp){run.sp={a:a.currentTime,p:performance.now(),warned:false}}
+    else if(!run.sp.warned){const dp=(performance.now()-run.sp.p)/1000;
+      if(dp>4){const r=(a.currentTime-run.sp.a)/dp;run.sp.warned=true;
+        if(r<0.9||r>1.1)msg(`この機器では演奏の速さが本来の${Math.round(r*100)}%になっています。Bluetoothのイヤホンを外すか、ブラウザを開き直してください（「?」に詳しく）。`,true)}}
     t=a.currentTime-run.start0;const beat=run.b0+t/run.spb;
     if(run.kind==="mic"&&a.currentTime-run.last>0.03){
       run.last=a.currentTime;run.analyser.getFloatTimeDomainData(run.buf);
