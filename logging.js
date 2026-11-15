@@ -1,4 +1,4 @@
-// 利用ログの送信（誰かは記録しない。端末ごとのランダムな番号だけを付ける）
+// 利用ログの送信（一方通行。誰かは記録しない。端末ごとのランダムな番号・開いた/再生した・再生秒数だけ）
 // 送り先は Google Apps Script（admin/collector.gs）。手順は admin/README.md
 (()=>{
 // ↓ Apps Script を「ウェブアプリ」として公開したときの URL（…/exec）を貼る。空なら何も送らない
@@ -21,7 +21,7 @@ if(!UUID_RE.test(dev||"")){dev=uuid();ls.set("kara-device",dev)}
 
 function send(ev){
   if(off)return;
-  ev.d=dev;ev.t=new Date().toISOString();ev.v=1;
+  ev.d=dev;
   const body=JSON.stringify(ev);
   // text/plain で送ると、ブラウザの事前確認（CORS preflight）なしで Apps Script に届く
   try{if(navigator.sendBeacon&&navigator.sendBeacon(LOG_URL,new Blob([body],{type:"text/plain;charset=UTF-8"})))return}catch(e){}
@@ -30,8 +30,8 @@ function send(ev){
 
 window.KaraLog={
   // アプリを開いた
-  open(song,part){send({e:"open",s:song,p:part})},
-  // 1回の再生（マイクで歌う／お手本だけ聴く）が終わった・止めた・ページを閉じた
-  play(o){send({e:"play",s:o.song,p:o.part,k:o.kind,m:o.mode,f:o.from,to:o.to,sec:o.sec,fin:!!o.finished,sc:o.score})}
+  open(){send({e:"open"})},
+  // 1回の再生が終わった・止めた・ページを閉じた。実際に流れた秒数だけ送る
+  play(sec){send({e:"play",sec})}
 };
 })();

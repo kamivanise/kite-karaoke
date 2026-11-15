@@ -213,7 +213,7 @@ footer a{color:inherit}
         <input type="range" id="sens" min="1" max="10" step="1" value="7">
         <div class="meter" aria-hidden="true"><i id="lvl"></i><b id="thr"></b></div>
       </section>
-      <p class="sub">このアプリは、どの曲・パートが何分使われたかを記録しています。名前や声は送りません。端末ごとに番号をつけて数えています。</p>
+      <p class="sub">このアプリは、開いた回数と練習した時間だけを記録しています。名前・声・点数は送りません。端末ごとに番号をつけて数えています。</p>
     </div>
   </dialog>
 
@@ -452,18 +452,17 @@ function stopAll(finished){
   pending=[];for(const o of scheduled){try{o.stop()}catch(e){}}scheduled=[];
   if(run.stream)run.stream.getTracks().forEach(t=>t.stop());
   if(run.src){try{run.src.stop()}catch(e){}}
-  logRun(run,finished);
+  logRun(run);
   const kind=run.kind;run=null;uiRunning(false);$("lvl").style.width="0";
   if(kind!=="guide")showScore(finished);
 }
-// 利用ログ：1回の再生につき1行。実際に流れた秒数（カウントの4拍は除く）を送る
-function logRun(r,finished){
+// 利用ログ：1回の再生につき1行。実際に流れた秒数（カウントの4拍は除く）だけを送る
+function logRun(r){
   if(!r||r.logged||!window.KaraLog)return;r.logged=true;
-  const len=Math.max(0,(r.b1-r.b0)*r.spb),sec=Math.round(Math.max(0,Math.min(len,(ac?ac.currentTime:0)-r.start0)));
-  KaraLog.play({song:songId,part,kind:r.kind,mode,from:r.a,to:r.b,sec,finished:!!finished,
-    score:r.kind==="mic"&&frames?Math.round(hits/frames*100):null});
+  const len=Math.max(0,(r.b1-r.b0)*r.spb);
+  KaraLog.play(Math.round(Math.max(0,Math.min(len,(ac?ac.currentTime:0)-r.start0))));
 }
-window.addEventListener("pagehide",()=>{if(run)logRun(run,false)});
+window.addEventListener("pagehide",()=>{if(run)logRun(run)});
 function uiRunning(on){$("btnStop").disabled=!on;$("btnMic").disabled=on;$("btnGuide").disabled=on}
 function showScore(finished){
   if(!frames){$("scoreNum").textContent="--";$("scoreLbl").textContent="判定できる声がありませんでした";
@@ -687,7 +686,7 @@ renderProgressLink();
 document.addEventListener("click",e=>{const b=e.target.closest(".help");if(!b)return;e.preventDefault();
   const t=document.getElementById(b.dataset.help);if(!t)return;t.hidden=!t.hidden;b.setAttribute("aria-expanded",t.hidden?"false":"true")});
 fillBars();resize();requestAnimationFrame(frame);
-if(window.KaraLog)KaraLog.open(songId,part);
+if(window.KaraLog)KaraLog.open();
 })();
 </script>
 </body>
