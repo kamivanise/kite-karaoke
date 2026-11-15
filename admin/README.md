@@ -30,9 +30,10 @@
 
 ## セットアップ（1回だけ・15分ほど）
 
-### 1. スプレッドシートを作る
-1. Google ドライブで新しいスプレッドシートを作る（名前は例えば「カラオケ利用ログ」）
-2. URL の `https://docs.google.com/spreadsheets/d/` と `/edit` の間の文字列を控える（＝スプレッドシートID）
+### 1. スプレッドシート（作成済み）
+Google ドライブのマイドライブに「カラオケ利用ログ」として作成済み（シート名 `log`、見出し行あり、タイムゾーンは日本時間）。
+URL: https://docs.google.com/spreadsheets/d/1Jq3boKjYm0pzK9tzxSRCb0NPNiTNahLi7TLwpS7DO0k/edit
+共有はしない。
 
 ### 2. ① 受け取り係を公開する
 1. そのスプレッドシートで［拡張機能］→［Apps Script］
@@ -49,7 +50,7 @@
 
 ### 4. ② 管理画面を公開する
 1. https://script.google.com で［新しいプロジェクト］（スプレッドシートからではなく、単独で作る）
-2. 中身を消して `admin/dashboard.gs` を貼り、1 行目近くの `SHEET_ID` に手順 1-2 のIDを貼って保存
+2. 中身を消して `admin/dashboard.gs` を貼って保存（`SHEET_ID` は記入済み）
 3. ［デプロイ］→［新しいデプロイ］→「ウェブアプリ」
    - 実行ユーザー：**自分**
    - アクセスできるユーザー：**自分のみ**

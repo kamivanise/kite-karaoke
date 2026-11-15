@@ -5,7 +5,7 @@
  * → 公開 URL は、あなたの Google アカウントでログインしているときだけ開ける。
  * URL の末尾に ?days=7 / ?days=30 / ?days=90 / ?days=0（全期間）を付けると期間を変えられる。
  */
-const SHEET_ID = 'ここにスプレッドシートのIDを貼る';
+const SHEET_ID = '1Jq3boKjYm0pzK9tzxSRCb0NPNiTNahLi7TLwpS7DO0k'; // スプレッドシート「カラオケ利用ログ」
 const SHEET_NAME = 'log';
 const TZ = 'Asia/Tokyo';
 const DAY = 86400000;
