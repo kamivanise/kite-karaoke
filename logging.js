@@ -2,7 +2,7 @@
 // 送り先は Google Apps Script（admin/collector.gs）。手順は admin/README.md
 (()=>{
 // ↓ Apps Script を「ウェブアプリ」として公開したときの URL（…/exec）を貼る。空なら何も送らない
-const LOG_URL="";
+const LOG_URL="https://script.google.com/macros/s/AKfycbxBAPKAe-u6jKOsRDDkbkci-yC3M9wzPpFL6aGUSDdGpAzyOc8dQuL682jXKp_kGnYy/exec";
 
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
 // ?nolog を付けて一度開いた端末は、以後ログを送らない（管理者の試し弾き用）。?log で元に戻す
